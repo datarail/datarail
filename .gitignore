@@ -84,3 +84,4 @@ large_corpus.rdf
 .coverage
 cover
 setuptools*.zip
+.DS_Store
