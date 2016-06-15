@@ -29,7 +29,8 @@ def allcounts(conc, x0, xctrl, GRmax, x50, Hill):
     dead_min = np.ceil(x0/20.)
 
     totalcells = add_count_noise(cellcount(conc, xctrl+dead_min/2, x50-.1, Hill, xend+dead_max/2))
-    deadcells = add_count_noise(deadcount(conc, dead_max, x50+.1, Hill, dead_min))/2 # dead cells are split with corpses
+    deadcells = np.ceil(add_count_noise(deadcount(conc, dead_max, x50+.1, Hill, dead_min))/2)
+    # dead cells are split with corpses
     viablecells = totalcells - deadcells
     corpses = add_count_noise(np.maximum(10, x0-totalcells)+10)+deadcells
 
@@ -71,7 +72,6 @@ def multiple_responses(df_trt, df_gr, df_sens):
         res = pd.concat([df_trt.iloc[i:(i+1),:].reset_index(drop=True), res], axis=1)
         
         df_res = df_res.append(res)
-        
     return df_res.reset_index(drop=True)
 
 
@@ -133,7 +133,7 @@ def Columbus_row_data(barcode, timestamp, well, df_values, Nfields=6):
     
     # account for missing fields
     for f in ['cell_count__total', 'cell_count__dead', 'cell_count', 'corpse_count']:
-        df_values[f] = (df_values[f]*Nfields)/defaultNfield
+        df_values[f] = np.ceil((df_values[f]*Nfields)/defaultNfield)
 
     if 'barcode' in df_values.columns:
         df_values.drop('barcode', 1, inplace=True)
@@ -207,8 +207,9 @@ def load_references():
     return dict({'df_gr':df_growth, 'df_sens':df_sensitivity, 'df_trt':df_treatments})
            
 
-def Columbus_example(filename='example', strength=.3):
+def Columbus_example(filename='example', strength=.3, seed=1):
     ref = load_references()
+    np.random.seed(seed)
 
     df_res = multiple_responses(ref['df_trt'], ref['df_gr'], ref['df_sens'])
     df_bias = add_edge_effect(df_res, strength)
