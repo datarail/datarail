@@ -167,6 +167,7 @@ def Columbus_fixed(df_trt, df_res):
 # needs a list of treatments, cell line division rates, and drug responses
 # usage: Columbus_timecourse(ref['df_trt'], ref['df_gr'], ref['df_sens'])
 def Columbus_timecourse(df_trt, df_gr, df_sens, strength=0):
+    
     print 'check implementation --- not fully done --- '
     
     df_res = pd.DataFrame([])
