@@ -20,7 +20,8 @@ def get_drug_id(drugs):
             hmslid.append('NA')
 
     drug_id = dict(zip(drugs, hmslid))
-
+    
+    
     return drug_id
 
 
@@ -43,7 +44,8 @@ def get_cell_line_id(cell_lines):
             hmslid.append('NA')
 
     line_id = dict(zip(cell_lines, hmslid))
-
+    # line_id = hmslid
+    
     return line_id
         
 
