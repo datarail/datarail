@@ -32,8 +32,9 @@ def control_positions(plate_dims, control_count):
     elif control_count >= 20:
         cntrl_pos[[0, -1], 0] = True
         cntrl_pos[[0, -1], -1] = True
+    
         
-    return cntrl_pos    
+    return cntrl_pos   
 
 
 def get_boundary_cell_count(plate_dims):
