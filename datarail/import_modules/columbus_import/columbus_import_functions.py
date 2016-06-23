@@ -99,7 +99,7 @@ def Columbus_processing(filename, outputfile=''):
 
     if len(outputfile)==0:
         outputfile = '../OUTPUT/processed_' + os.path.split(filename)[1]
-    df.to_csv(outputfile, sep='\t')
+    df.to_csv(outputfile, index=False, sep='\t')
 
     print 'File \n\t%s \nprocessed and saved in \n\t%s' % (filename, outputfile)
 

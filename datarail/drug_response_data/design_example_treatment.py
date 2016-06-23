@@ -1,6 +1,4 @@
 from functions import *
-#import pandas as pd
-#import numpy as np
 
 
 # create the plate info file
@@ -63,6 +61,6 @@ df_bias = add_edge_effect(df_res, .1)
 
 df_Col = Columbus_fixed(df_treatments, df_bias)
 
-df_res.to_csv('../OUTPUT/Example1_unbiased_results_.tsv', index=False, sep='\t')
-df_bias.to_csv('../OUTPUT/Example1_biased_results_.tsv', index=False, sep='\t')
-df_Col.to_csv('../OUTPUT/Example1_Columbus_output_.tsv', index=False, sep='\t')
+df_res.to_csv('../OUTPUT/Example1_unbiased_results.tsv', index=False, sep='\t')
+df_bias.to_csv('../OUTPUT/Example1_biased_results.tsv', index=False, sep='\t')
+df_Col.to_csv('../OUTPUT/Example1_Columbus_output.tsv', index=False, sep='\t')
