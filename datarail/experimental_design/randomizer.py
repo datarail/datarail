@@ -13,7 +13,7 @@ def randomizer(drug_panels, all_treatments, cntrl_pos):
         panel[0, idx_sort[:all_treatments.shape[1]]] = all_treatments[i, :]
         panel = panel.reshape(drug_panel.shape)
         panels.append(panel)
-    return panel
+    return panels
 
           
     
