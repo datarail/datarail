@@ -28,6 +28,6 @@ def construct_design(drugs, cell_lines, treatments_df, n_controls, args):
                                 np.ones(plate_dims, dtype=bool))
 
     cntrl_pos = control_positions(plate_dims, n_controls)
-    Designs['control_wells'] = cntrl_pos
+    Designs['control_wells'] = (('rows', 'cols'), cntrl_pos)
     Designs = randomizer(drugs, Designs, treatments_df, cntrl_pos)
     return Designs
