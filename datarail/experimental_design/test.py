@@ -2,7 +2,7 @@ from construct_design import construct_design
 from treatment_df import get_df
 from parse_vararg import parse_args
 import numpy as np
-from plot_drugs import plot
+from plot_panels import plot_drugs, plot_control_wells
 
 args = parse_args()
 drugs = ['MK2206', 'Gefitinib', 'GSK1059615',
@@ -18,4 +18,5 @@ drug_treatment_df = get_df(drug_treatment, args)
 
 Designs = construct_design(drugs, cells, drug_treatment_df,
                            n_controls, args)
-plot(Designs, drugs)
+plot_drugs(Designs, drugs)
+plot_control_wells(Designs)
