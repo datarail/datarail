@@ -1,7 +1,9 @@
 from get_hmslid import get_hmslid
+from control_position import control_positions
+from randomizer import randomizer
 
 
-def construct_design(drugs, cell_line_list, args):
+def construct_design(drugs, cell_lines, treatments_df, n_controls, args):
     import xarray as xr
     import numpy as np
 
@@ -9,7 +11,7 @@ def construct_design(drugs, cell_line_list, args):
     plate_rows = list(map(chr, range(65, 65+plate_dims[0])))
     plate_cols = range(1, plate_dims[1] + 1)
     Designs = xr.Dataset({k: (['rows', 'cols'], np.zeros(args.plate_dims))
-                          for k in drugs.keys()},
+                          for k in drugs},
                          coords={'rows': plate_rows, 'cols': plate_cols})
 
     Designs.attrs['Seed'] = args.Seed
@@ -20,10 +22,12 @@ def construct_design(drugs, cell_line_list, args):
         Designs[drug].attrs['DrugName'] = drug
         Designs[drug].attrs['Stock_conc'] = args.stock_conc
         Designs[drug].attrs['HMSLid'] = get_hmslid([drug])[drug]
-
     Designs['Perturbations'] = (('rows', 'cols'), np.zeros(plate_dims))
     Designs['Vehicle'] = (('rows', 'cols'), np.zeros(plate_dims))
     Designs['treated_wells'] = (('rows', 'cols'),
                                 np.ones(plate_dims, dtype=bool))
 
+    cntrl_pos = control_positions(plate_dims, n_controls)
+    Designs['control_wells'] = cntrl_pos
+    Designs = randomizer(drugs, Designs, treatments_df, cntrl_pos)
     return Designs
