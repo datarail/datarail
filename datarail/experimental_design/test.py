@@ -14,7 +14,14 @@ drug_treatment = {}
 concentrations = np.hstack((1, 10 ** np.linspace(1, 4, 9)))
 for drug in drugs:
     drug_treatment[drug] = concentrations
-drug_treatment_df = get_df(drug_treatment, args)
+drug_class1 = ['MK2206', 'Gefitinib', 'GSK1059615']
+drug_class2 = ['BEZ235', 'Triciribine', 'PP242']
+combo_pairs = [(d1, d2) for d1 in drug_class1 for d2 in drug_class2]
+combo_doses = {}
+for drug in drugs:
+    combo_doses[drug] = concentrations[4:7]
+drug_treatment_df = get_df(drug_treatment, args,
+                           combo_pairs, combo_doses)
 
 Designs = construct_design(drugs, cells, drug_treatment_df,
                            n_controls, args)
