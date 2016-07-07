@@ -46,7 +46,7 @@ def parse_args():
     parser.add_argument('-max_DMSOpct', default=0.2,
                         type=lambda x: isinstance(x, (int, float)))
 
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
     return args
 
    
