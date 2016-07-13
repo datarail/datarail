@@ -20,11 +20,12 @@ import numpy as np
 #     return panels
 
 
-def randomizer(drugs, xray_struct, all_treatments, cntrl_pos):
+def randomizer(drugs, xray_struct, all_treatments, cntrl_pos, random_seed):
 
     plate_dims = cntrl_pos.shape
     nwells = cntrl_pos.size
     cntrl_idx = np.nonzero(cntrl_pos.reshape(1, nwells))[1]
+    np.random.seed(random_seed)
     idx = np.random.choice(range(nwells),
                            size=nwells,
                            replace=False)

@@ -3,7 +3,8 @@ from control_position import control_positions
 from randomizer import randomizer
 
 
-def construct_design(drugs, cell_lines, treatments_df, n_controls, args):
+def construct_design(drugs, cell_lines, treatments_df,
+                     n_controls, args, random_seed=False):
     import xarray as xr
     import numpy as np
 
@@ -29,5 +30,7 @@ def construct_design(drugs, cell_lines, treatments_df, n_controls, args):
 
     cntrl_pos = control_positions(plate_dims, n_controls)
     Designs['control_wells'] = (('rows', 'cols'), cntrl_pos)
-    Designs = randomizer(drugs, Designs, treatments_df, cntrl_pos)
+    if random_seed:
+        Designs = randomizer(drugs, Designs, treatments_df,
+                             cntrl_pos, random_seed)
     return Designs
