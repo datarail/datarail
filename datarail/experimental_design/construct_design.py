@@ -4,7 +4,7 @@ from randomizer import randomizer
 
 
 def construct_design(drugs, cell_lines, treatments_df,
-                     num_doses, args, random_seed=False):
+                     num_doses, args, barcode, random_seed=False):
     import xarray as xr
     import numpy as np
 
@@ -18,6 +18,7 @@ def construct_design(drugs, cell_lines, treatments_df,
     Designs.attrs['Seed'] = args.Seed
     Designs.attrs['well_volume'] = args.well_volume
     Designs.attrs['plate_dims'] = plate_dims
+    Designs.attrs['barcode'] = barcode
 
     for drug in drugs:
         Designs[drug].attrs['DrugName'] = drug
