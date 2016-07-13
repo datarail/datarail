@@ -1,4 +1,5 @@
 import pandas as pd
+import re
 
 
 def get_hmslid(drugs):
@@ -7,6 +8,10 @@ def get_hmslid(drugs):
     url = 'http://lincs.hms.harvard.edu/db/sm/?search=&output_type=.csv'
 
     df = pd.read_csv(url)
+    alt_names = []
+    for i, names in enumerate(df['Alternative Names']):
+        df['Alternative Names'][i] = re.split(';', names)
+        alt_names += df['Alternative Names']
 
     hmslid = []
 
