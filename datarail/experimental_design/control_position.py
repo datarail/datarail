@@ -9,11 +9,11 @@ def control_positions(plate_dims, control_count):
     assert control_count >= 12,\
         "For placing controls on the edge, atleast 12 controls are required"
 
-    row_pos1 = [round(i-1) for i
+    row_pos1 = [int(i-1) for i
                 in np.linspace(1, plate_dims[0], 4)]
-    row_pos2 = [round(i-1) for i
+    row_pos2 = [int(i-1) for i
                 in np.linspace(1, plate_dims[0], 3)]
-    col_pos = [round(i-1) for i
+    col_pos = [int(i-1) for i
                in np.linspace(1, plate_dims[1], 4)]
 
     if control_count < 14:
