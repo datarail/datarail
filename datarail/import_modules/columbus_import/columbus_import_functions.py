@@ -3,7 +3,7 @@ import numpy as np
 import datetime
 import re
 import os
-
+from datarail.utils.plate_fcts import *
 
 
 def Read_Columbus(filename):
@@ -15,7 +15,10 @@ def Read_Columbus(filename):
                                        "%Y-%m-%d %H:%M:%S") for i in range(0,len(dfin))]
 
     dfout = pd.concat([pd.Series(barcode, name='barcode'), pd.Series(date, name='date'), dfin], axis = 1)
-    dfout.drop(['Result', 'URL'], 1, inplace=True)
+    dfout['well'] = [well_as_2digit(w) for w in dfout.Well]
+
+    dfout.drop(['Result', 'URL', 'Well'], 1, inplace=True)
+
 
     return dfout
 
@@ -97,12 +100,11 @@ def Columbus_processing(filename, outputfile=''):
                                    ('corpse_count','LDR_pos_Hoechst_neg'),
                                    ('cell_count__dead', 'Hoechst_LDR_pos')))
 
-    if len(outputfile)==0:
-        outputfile = '../OUTPUT/processed_' + os.path.split(filename)[1]
-    df.to_csv(outputfile, index=False, sep='\t')
+    if len(outputfile)!=0:
+        df.to_csv(outputfile, index=False, sep='\t')
+        print 'File \n\t%s \nprocessed and saved in \n\t%s' % (filename, outputfile)
 
-    print 'File \n\t%s \nprocessed and saved in \n\t%s' % (filename, outputfile)
-
+    return df
 
 
 ################################## helper functions ###############################
