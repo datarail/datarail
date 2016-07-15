@@ -23,8 +23,7 @@ for drug in drugs:
     max_dose = df['Highest_Dose'].ix[
         df['Compound_Name'] == drug].values[0]
     max_dose_value = float(re.split('u', max_dose)[0])
-    drug_treatment[drug] = max_dose_value * 1e-4 * np.hstack(
-        (1, 10 ** np.linspace(1, 4, num_doses)))
+    drug_treatment[drug] = max_dose_value * 1e-4 * np.logspace(0, 4, num_doses)
 drug_treatment_df = get_df(drug_treatment, args)
 
 for rep in range(num_replicates):
