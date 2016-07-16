@@ -1,12 +1,13 @@
 from get_hmslid import get_hmslid
 from control_position import control_positions
 from randomizer import randomizer
+import xarray as xr
+import numpy as np
+import cPickle as pickle
 
 
 def construct_design(drugs, cell_lines, treatments_df,
                      num_doses, args, barcode, random_seed=False):
-    import xarray as xr
-    import numpy as np
 
     plate_dims = args.plate_dims
     plate_rows = list(map(chr, range(65, 65+plate_dims[0])))
@@ -35,4 +36,6 @@ def construct_design(drugs, cell_lines, treatments_df,
     Designs['control_wells'] = (('rows', 'cols'), cntrl_pos)
     Designs = randomizer(drugs, Designs, treatments_df,
                          cntrl_pos, random_seed)
+    filename = '%s.pkl' % barcode
+    pickle.dump(Designs, open(filename, 'wb'), protocol=-1)
     return Designs
