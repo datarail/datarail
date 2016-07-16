@@ -33,7 +33,6 @@ def construct_design(drugs, cell_lines, treatments_df,
     n_controls = n_wells - (len(drugs) * num_doses)
     cntrl_pos = control_positions(plate_dims, n_controls)
     Designs['control_wells'] = (('rows', 'cols'), cntrl_pos)
-    if random_seed:
-        Designs = randomizer(drugs, Designs, treatments_df,
-                             cntrl_pos, random_seed)
+    Designs = randomizer(drugs, Designs, treatments_df,
+                         cntrl_pos, random_seed)
     return Designs
