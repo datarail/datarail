@@ -77,4 +77,4 @@ def get_mapping(batch, reps, drug_treatment):
 for i, batch in enumerate(batches):
     df = get_mapping(batch, reps, drug_treatment)
     filename = 'mapping_%d.csv' % (i+1)
-    df.to_csv(filename, index=False)
+    df.to_csv(filename, sep='\t', index=False)
