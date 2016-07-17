@@ -12,4 +12,4 @@ def get_well_id(Designs, drug, concentration):
         for i in range(len(ind[0])):
             pos = '%s%s' % (chr(65+ind[0][i]), ind[1][i]+1)
             wells.append(pos)
-    return wells        
+    return wells 

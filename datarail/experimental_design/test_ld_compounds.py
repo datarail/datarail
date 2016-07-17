@@ -37,7 +37,7 @@ drug_treatment_df = get_df(drug_treatment, args)
 for rep in range(num_replicates):
     rep += 1
     barcode = plate_name + '_rep_%d' % rep
-    Designs = construct_design(drugs, cell_lines, drug_treatment_df,
+    Designs = construct_design(cell_lines, drug_treatment_df,
                                num_doses, args, barcode, random_seed=rep)
     plot_drugs(Designs, drugs, rep)
     plot_control_wells(Designs)
@@ -51,17 +51,6 @@ with open('LD_20160713_rep_3.pkl', 'rb') as pickle_file:
     rep3 = pickle.load(pickle_file)
 
 
-batch1_drugs = drugs[:8]
-batch2_drugs = drugs[8:16]
-batch3_drugs = drugs[16:24]
-batch4_drugs = drugs[24:]
-
-
-batches = [batch1_drugs, batch2_drugs,
-           batch3_drugs, batch4_drugs]
-reps = [rep1, rep2, rep3]
-
-
 def get_mapping(batch, reps, drug_treatment):
     batch_wells = []
     rep1_wells = []
@@ -70,16 +59,59 @@ def get_mapping(batch, reps, drug_treatment):
     for i, drug in enumerate(batch):
         row = chr(65+i)
         for j, c in enumerate(drug_treatment[drug]):
-            batch_wells.append('%s%d' % (row, j))
-            rep1_wells.append(get_well_id(reps[0], drug, c))
-            rep2_wells.append(get_well_id(reps[1], drug, c))
-            rep3_wells.append(get_well_id(reps[2], drug, c))
-    z = zip(batch_wells, rep1_wells, rep2_wells, rep3_wells)
-    df = pd.DataFrame(z, columns=['batch1', 'rep1', 'rep2', 'rep3'])
-    return df
+            batch_wells.append('%s%d' % (row, j+1))
+            rep1_wells += get_well_id(reps[0], drug, c)
+            rep2_wells += get_well_id(reps[1], drug, c)
+            rep3_wells += get_well_id(reps[2], drug, c)
+    z = [batch_wells, rep1_wells, rep2_wells, rep3_wells]
+    return z
 
 
-for i, batch in enumerate(batches):
-    df = get_mapping(batch, reps, drug_treatment)
-    filename = 'mapping_0%d.csv' % (i+1)
-    df.to_csv(filename, index=False)
+def get_control_mapping(batch_controls, control_dict, z):
+    for control in batch_controls:
+        for dose in control_dict[control].keys():
+            z[0] += control_dict[control][dose]
+            z[1] += get_well_id(reps[0], control, float(dose))
+            z[2] += get_well_id(reps[1], control, float(dose))
+            z[3] += get_well_id(reps[2], control, float(dose))
+    return z        
+
+
+control_dict = {}
+control_dict['DMSO'] = {'300': ['A12', 'B12', 'C12', 'D12', 'E12', 'F12']}
+control_dict['Paclitaxel'] = {'300': ['A11', 'B11']}
+control_dict['GSK2126458'] = {'300': ['A12', 'B12']}
+control_dict['Actinomycin D'] = {'300': ['D11', 'E11', 'F11'], '250': ['G11']}
+control_dict['Staurosporine'] = {'300': ['D12', 'E12', 'F12', 'G12']}
+
+
+batch1_drugs = drugs[:8]
+batch2_drugs = drugs[8:16]
+batch3_drugs = drugs[16:24]
+batch4_drugs = drugs[24:]
+batch1_controls = positive_controls
+batch2_controls = ['DMSO']
+
+reps = [rep1, rep2, rep3]
+columns = ['source_wells', 'destination_wells_rep1',
+           'destination_wells_rep2', 'destination_wells_rep3']
+
+z = get_mapping(batch1_drugs, reps, drug_treatment)
+z = get_control_mapping(batch1_controls, control_dict, z)
+df = pd.DataFrame(zip(z[0], z[1], z[2], z[3]), columns=columns)
+df.to_csv('mapping_01.csv', index=False)
+
+z = get_mapping(batch2_drugs, reps, drug_treatment)
+z = get_control_mapping(batch2_controls, control_dict, z)
+df = pd.DataFrame(zip(z[0], z[1], z[2], z[3]), columns=columns)
+df.to_csv('mapping_02.csv', index=False)
+
+z = get_mapping(batch3_drugs, reps, drug_treatment)
+df = pd.DataFrame(zip(z[0], z[1], z[2], z[3]), columns=columns)                  
+df.to_csv('mapping_03.csv', index=False)
+
+z = get_mapping(batch4_drugs, reps, drug_treatment)
+df = pd.DataFrame(zip(z[0], z[1], z[2], z[3]), columns=columns)                  
+df.to_csv('mapping_04.csv', index=False)
+
+
