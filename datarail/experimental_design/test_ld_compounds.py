@@ -27,6 +27,11 @@ for drug in drugs:
         df['Compound_Name'] == drug].values[0]
     max_dose_value = float(re.split('u', max_dose)[0])
     drug_treatment[drug] = max_dose_value * 1e-4 * np.logspace(0, 4, num_doses)
+drug_treatment['Paclitaxel'] = np.array([300]*2)
+drug_treatment['GSK2126458'] = np.array([300]*2)
+drug_treatment['Staurosporine'] = np.array([300]*4)
+drug_treatment['Actinomycin D'] = np.array([300, 300, 300, 250])
+drug_treatment['DMSO'] = np.array([300]*6)
 drug_treatment_df = get_df(drug_treatment, args)
 
 for rep in range(num_replicates):
