@@ -76,6 +76,8 @@ large_corpus.rdf
 
 # Pickle
 *.pkl
+*.ipynb
+.ipynb*
 
 # JARs
 *.jar
