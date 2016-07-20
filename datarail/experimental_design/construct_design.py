@@ -6,11 +6,13 @@ import numpy as np
 import cPickle as pickle
 
 
-def construct_design(treatments_df, args, barcode, n_replicates=1, random_seed=True, edge_bias=True):
+def construct_design(treatments_df, args, barcode, n_replicates=1,
+                     random_seed=True, edge_bias=True):
 
     treatments = treatments_df.keys()
     # cleaning up the treatments_df to only have rows with a treatment
-    drug_treatment_df = treatments_df.iloc[(treatments_df.values!=0).any(axis=1),:]
+    drug_treatment_df = treatments_df.iloc[
+        (treatments_df.values != 0).any(axis=1), :]
     n_treatments = len(drug_treatment_df)
     plate_dims = args.plate_dims
     plate_rows = list(map(chr, range(65, 65+plate_dims[0])))
@@ -34,7 +36,8 @@ def construct_design(treatments_df, args, barcode, n_replicates=1, random_seed=T
 
     n_wells = plate_dims[0] * plate_dims[1]
     n_controls = n_wells - n_treatments
-    (cntrl_pos, treated_pos) = control_positions(plate_dims, n_controls) # forced control positions
+    (cntrl_pos, treated_pos) = control_positions(
+        plate_dims, n_controls)  # forced control positions
     Design1['control_wells'] = (('rows', 'cols'), cntrl_pos)
     Design1['treated_wells'] = (('rows', 'cols'), treated_pos)
     Designs = randomizer(treatments, Design1, drug_treatment_df, plate_dims,
@@ -51,8 +54,7 @@ def construct_design(treatments_df, args, barcode, n_replicates=1, random_seed=T
     return Designs
 
 
-
 def reassign_cntrls(Design, treatments):
 
     all_conc = np.array([Design[d].values for d in treatments])
-    return np.all(all_conc==0, axis=0)
+    return np.all(all_conc == 0, axis=0)

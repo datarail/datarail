@@ -6,7 +6,7 @@ def control_positions(plate_dims, control_count):
     cntrl_pos = np.zeros(plate_dims,
                          dtype=bool)
     treated_pos = np.ones(plate_dims,
-                         dtype=bool)
+                          dtype=bool)
 
     assert control_count >= 12,\
         "For placing controls on the edge, at least 12 controls are required"
