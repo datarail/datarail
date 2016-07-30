@@ -3,7 +3,17 @@ import pandas as pd
 
 
 def get_hmslid(drugs):
-    ''' Given drug name, return hmslid'''
+    """ Given drug name, return hmslid
+    Parameter
+    ---------
+    drugs: list
+       list of drug names
+
+    Returns
+    -------
+    drug_id: dict
+       dictionary of drug names as keys and corrsponding HMS lincs id as values
+    """
 
     url = 'http://lincs.hms.harvard.edu/db/sm/?search=&output_type=.csv'
 
