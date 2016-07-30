@@ -121,7 +121,7 @@ def get_map_report(drugs, Designs, drug_treatment,
                'Person Visiting', 'Screen Number', 'Volume']
     sp = ['']*len(z[1])
     sc = ['']*len(z[1])
-    person = ['Laura Doherty']*len(z[1])
+    person = ['LD']*len(z[1])
     spt = ['Nunc 96 UB PP']*len(z[1])
     dpt = ['']*len(z[1])
     screen_number = ['']*len(z[1])
@@ -145,94 +145,4 @@ get_map_report(batch3_drugs, Designs, drug_treatment,
                control_dict, 'SP3', batch3_controls)
 get_map_report(batch4_drugs, Designs, drug_treatment,
                control_dict, 'SP4')
-
-
-
-           
-
-# z = get_mapping(batch1_drugs, reps, drug_treatment)
-# z = get_control_mapping(batch1_controls, control_dict, z)
-# sp = ['']*len(z[1])
-# sc = ['']*len(z[1])
-# person = ['Laura Doherty']*len(z[1])
-# spt = ['Nunc 96 UB PP']*len(z[1])
-# dpt = ['']*len(z[1])
-# screen_number = ['']*len(z[1])
-# volume = [46]*len(z[1])
-# df1 = pd.DataFrame(zip(sp, sc, z[0], spt, z[1], dpt,
-#                        person, screen_number, volume), columns=columns)
-# df1.to_csv('sp1_DUBI1_A.csv', index=False)
-# df2 = pd.DataFrame(zip(sp, sc, z[0], spt, z[2], dpt,
-#                        person, screen_number, volume), columns=columns)
-# df2.to_csv('sp1_DUBI1_B.csv', index=False)
-# df3 = pd.DataFrame(zip(sp, sc, z[0], spt, z[3], dpt,
-#                        person, screen_number, volume), columns=columns)
-# df3.to_csv('sp1_DUBI1_C.csv', index=False)
-
-# z = get_mapping(batch2_drugs, reps, drug_treatment)
-# z = get_control_mapping(batch2_controls, control_dict, z)
-# sp = ['']*len(z[1])
-# sc = ['']*len(z[1])
-# person = ['Laura Doherty']*len(z[1])
-# spt = ['Nunc 96 UB PP']*len(z[1])
-# dpt = ['']*len(z[1])
-# screen_number = ['']*len(z[1])
-# volume = [46]*len(z[1])
-# df1 = pd.DataFrame(zip(sp, sc, z[0], spt, z[1], dpt,
-#                        person, screen_number, volume), columns=columns)
-# df1.to_csv('sp2_DUBI1_A.csv', index=False)
-# df2 = pd.DataFrame(zip(sp, sc, z[0], spt, z[2], dpt,
-#                        person, screen_number, volume), columns=columns)
-# df2.to_csv('sp2_DUBI1_B.csv', index=False)
-# df3 = pd.DataFrame(zip(sp, sc, z[0], spt, z[3], dpt,
-#                        person, screen_number, volume), columns=columns)
-# df3.to_csv('sp2_DUBI1_C.csv', index=False)
-
-# z = get_mapping(batch3_drugs, reps, drug_treatment)
-# z = get_control_mapping(batch3_controls, control_dict, z)
-# sp = ['']*len(z[1])
-# sc = ['']*len(z[1])
-# person = ['Laura Doherty']*len(z[1])
-# spt = ['Nunc 96 UB PP']*len(z[1])
-# dpt = ['']*len(z[1])
-# screen_number = ['']*len(z[1])
-# volume = [46]*len(z[1])
-# df1 = pd.DataFrame(zip(sp, sc, z[0], spt, z[1], dpt, person, screen_number, volume), columns=columns)
-# df2 = pd.DataFrame(zip(sp, sc, z[0], spt, z[2], dpt, person, screen_number, volume), columns=columns)
-# df3 = pd.DataFrame(zip(sp, sc, z[0], spt, z[3], dpt, person, screen_number, volume), columns=columns)
-
-
-# z = get_mapping(batch4_drugs, reps, drug_treatment)
-# df = pd.DataFrame(zip(z[0], z[1], z[2], z[3]), columns=columns)
-# sp = ['']*len(z[1])
-# sc = ['']*len(z[1])
-# person = ['Laura Doherty']*len(z[1])
-# spt = ['Nunc 96 UB PP']*len(z[1])
-# dpt = ['']*len(z[1])
-# screen_number = ['']*len(z[1])
-# volume = [46]*len(z[1])
-# df1 = pd.DataFrame(zip(sp, sc, z[0], spt, z[1], dpt, person, screen_number, volume), columns=columns)
-# df2 = pd.DataFrame(zip(sp, sc, z[0], spt, z[2], dpt, person, screen_number, volume), columns=columns)
-# df3 = pd.DataFrame(zip(sp, sc, z[0], spt, z[3], dpt, person, screen_number, volume), columns=columns)
-
-
-
-
-
-# # for rep in range(num_replicates):
-# #     rep += 1
-# #     barcode = plate_name + '_rep_%d' % rep
-# #     Designs = construct_design(cell_lines, drug_treatment_df,
-# #                                num_doses, args, barcode, random_seed=rep)
-# #     plot_drugs(Designs, drugs, rep)
-# #     plot_control_wells(Designs)
-
-
-# # with open('DUBI1_A.pkl', 'rb') as pickle_file:
-# #     rep1 = pickle.load(pickle_file)
-# # with open('DUBI1_B.pkl', 'rb') as pickle_file:
-# #     rep2 = pickle.load(pickle_file)
-# # with open('DUBI1_C.pkl', 'rb') as pickle_file:
-# #     rep3 = pickle.load(pickle_file)
-
 
