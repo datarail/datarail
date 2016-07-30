@@ -126,7 +126,8 @@ def edge_wells(plate_dims, n_edge):
     well_dist = np.array([[np.min([i, plate_dims[1]-i-1, j,
                                    plate_dims[0]-j-1])
                            for i in range(plate_dims[1])] for j in range(plate_dims[0])])
-    well_groups = [[j for j,w in enumerate(well_dist.reshape(n_wells,1)) if w[0] == i]
+    well_groups = [[j for j, w in enumerate(
+        well_dist.reshape(n_wells, 1)) if w[0] == i]
                    for i in range(n_edge-1)]
     well_groups.append([i for i in range(n_wells)
                         if i not in sum(well_groups, [])])
