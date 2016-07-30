@@ -1,4 +1,5 @@
 import numpy as np
+import get_well_id
 
 def _barcode_position(plate_dims):
 
@@ -55,9 +56,10 @@ def encode_barcode(barcode, plate_dims=[16,24]):
 
     pos_wells = [ [wells[i][j] for j in range(0,len(bin_val[i])) if bin_val[i][j]=='1'] \
                   for i in range(0,len(bin_val))]
-
-    return (pos_wells, bin_val)
-
+    #pos_wells2 = [sum(pos_wells[i],[]) for i in range(len(pos_wells))]
+    pos_wells2 = [i for j in pos_wells for i in j]
+    # return pos_wells2
+    return pos_wells2
 
 
 
@@ -81,3 +83,43 @@ def decode_barcode(pos_wells, plate_dims=[16,24]):
     barcode = ''.join([ chr(int(b,2)+32) for b in bin_val[:-1] ])
 
     return barcode
+
+
+
+def get_inner_untreated_wells(Design, drugs):
+    untreated_wells = np.ones([16, 24], dtype=bool)
+    treatments = drugs + ['DMSO']
+    for i, tr in enumerate(treatments):
+        nparray = Design[tr].values
+        pos = np.nonzero(nparray)
+        for l in range(len(pos[0])):
+            untreated_wells[pos[0][l], pos[1][l]] = False
+    untreated_wells[0, :] = False
+    untreated_wells[-1, :] = False
+    untreated_wells[:, 0] = False
+    untreated_wells[:, -1] = False
+    pos = np.nonzero(untreated_wells)
+    rows = [chr(65+i) for i in pos[0]]
+    cols = [str(j+1) for j in pos[1]]
+    pos_wells = [i+j for i, j in zip(rows, cols)]
+    return pos_wells
+
+
+def assign_pc(Design, pc_treatments, well_index):
+    pcs = pc_treatments.keys()
+    start = 0
+    for pc in pcs:
+        Design[pc] = (('rows', 'cols'), np.zeros([16, 24]))
+        panel = Design[pc].values
+        panel = panel.reshape(1, 384) 
+        panel[0, well_index[
+            start:start+len(pc_treatments[pc])]] = pc_treatments[pc]
+        panel = panel.reshape([16, 24])
+        Design[pc].values = panel
+        start += len(pc_treatments[pc])
+    return Design    
+        
+                         
+    
+                                    
+
