@@ -8,6 +8,28 @@ import cPickle as pickle
 
 def construct_design(treatments_df, args, barcode, n_replicates=1,
                      random_seed=True, edge_bias=True):
+    """ construction of plate layout
+
+    Parameters
+    ----------
+    treatment_df: pandas dataframe
+          long table dataframe of drugs and corresponding doses
+    args:
+        default values of plate dimensions, stock concetntrations
+    barcode: str
+        barocde for plate
+    n_replicates: int
+        number of replicates in the experiment
+    random_seed: int
+        seed for random number generator
+    edge_bias: boolean value
+        True if edge bias to be taken into account while assigning wells
+
+    Returns
+    -------
+    Designs: list
+       list of replicates for Design xarray structures
+    """
 
     treatments = treatments_df.keys()
     # cleaning up the treatments_df to only have rows with a treatment
