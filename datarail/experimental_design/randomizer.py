@@ -5,6 +5,33 @@ import xarray as xr
 def randomizer(drugs, xray_struct, all_treatments,
                plate_dims, cntrl_pos, n_replicates,
                random_seed=1, edge_bias=True):
+    """ Randomizes well postion of all drugs in Design xarray structure
+
+    Parameters
+    ----------
+    drugs: list
+       list of drugs
+    xray_struct: list of xarray
+       xarray structure of drug and negative controls
+    all_treatments: pandas dataframe
+        long table for drugs and treatments
+    plate_dims: array
+        plate dimensions
+    cntrl_pos: ndarray
+        boolean array for postion of fixed control wells
+    n_replicates: int
+        number of replicates in the experiment
+    random_seed: int
+        seed used for random number generator
+    edge_bias: boolean value:
+        True if edge bias is accounted for, False if not
+
+    Returns
+    -------
+    xray_structs: list of xarray structres
+       Design xarray returned with randomized assignment of wells
+       for drug-dose combinations
+    """
 
     n_wells = plate_dims[0]*plate_dims[1]
     n_treatments = len(all_treatments)
@@ -35,7 +62,8 @@ def randomizer(drugs, xray_struct, all_treatments,
         for drug in drugs:
             panel = xray_structs[i][drug].values
             panel = panel.reshape(1, n_wells)
-            panel[0, trt_positions[i].astype('int')] = all_treatments[drug].values
+            panel[0, trt_positions[i].astype('int')]\
+                = all_treatments[drug].values
             panel = panel.reshape(plate_dims)
             xray_structs[i][drug].values = panel
 
@@ -125,7 +153,8 @@ def edge_wells(plate_dims, n_edge):
     n_wells = plate_dims[0]*plate_dims[1]
     well_dist = np.array([[np.min([i, plate_dims[1]-i-1, j,
                                    plate_dims[0]-j-1])
-                           for i in range(plate_dims[1])] for j in range(plate_dims[0])])
+                           for i in range(plate_dims[1])]
+                          for j in range(plate_dims[0])])
     well_groups = [[j for j, w in enumerate(
         well_dist.reshape(n_wells, 1)) if w[0] == i]
                    for i in range(n_edge-1)]
