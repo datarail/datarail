@@ -1,7 +1,24 @@
 import numpy as np
 
 
-def control_positions(plate_dims, control_count):
+def set_control_positions(plate_dims, control_count):
+    """ Number and position of control wells assigned based on
+    plate dimension and number of available wells for control
+
+    Parameters
+    ---------
+    plate_dims: array
+         dimension of plate
+    control_count: int
+         number of wells available for controls
+
+    Returns
+    -------
+    control_pos: boolean array
+          array of dimensions mathing plate dims which
+         are True for wells assigned as control wells
+    """
+
     min_inner_positions = 6
     cntrl_pos = np.zeros(plate_dims,
                          dtype=bool)
@@ -60,5 +77,17 @@ def control_positions(plate_dims, control_count):
 
 
 def get_boundary_cell_count(plate_dims):
+    """ get number of wells in outer or inner edges
+
+    Parameter
+    ---------
+    plate_dims: array
+         dimensions of plate
+
+    Returns
+    -------
+    boundary_cell_count: int
+           number of wells in the edges
+    """
     boundary_cell_count = 2 * (plate_dims[0] + plate_dims[1] - 2)
     return boundary_cell_count
