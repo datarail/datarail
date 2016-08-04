@@ -6,9 +6,9 @@ import edge_barcode
 import warnings
 
 
-def make_assay(df, plate_dims, barcode_prefix,
+def make_assay(csv_file, plate_dims, barcode_prefix,
                encode_plate=False, num_replicates=1):
-    df = pd.read_csv(csv_file, sep='\t')
+    df = pd.read_csv(csv_file)
     drugs = df.Compound_Name[df.Role == 'treatment'].tolist()
     positive_controls = df.Compound_Name[df.Role ==
                                          'positive_control'].tolist()
@@ -28,9 +28,6 @@ def make_assay(df, plate_dims, barcode_prefix,
 
     num_wells = plate_dims[0] * plate_dims[1]
     num_treatments = sum(len(v) for v in drug_treatments.itervalues())
-    print ""
-    print 'This experiment intends to use %d drugs making up a' \
-        ' total of %d treatments' % (len(drugs), num_treatments)
     num_edge_wells = get_boundary_cell_count(plate_dims)
     inner_wells_available = num_wells - num_treatments - num_edge_wells
 
@@ -101,7 +98,7 @@ def make_assay(df, plate_dims, barcode_prefix,
             print ""
             warnings.warn('treatments for barcode not specified')
 
-    return drug_treatments, pc_treatments, nc_treatments, bc_treatments
+    return drug_treatments, nc_treatments, pc_treatments, bc_treatments
 
 
 def make_treatment_dataframe(drug_treatment_dict, args,
@@ -170,8 +167,3 @@ def get_boundary_cell_count(plate_dims):
     """
     boundary_cell_count = 2 * (plate_dims[0] + plate_dims[1] - 2)
     return boundary_cell_count
-
-
-        
-
-
