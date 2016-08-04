@@ -1,5 +1,5 @@
 from get_hmslid import get_hmslid
-from control_position import control_positions
+from control_position import set_control_positions
 from randomizer import randomizer
 import xarray as xr
 import numpy as np
@@ -27,7 +27,7 @@ def construct_design(treatments_df, args, barcode, n_replicates=1,
 
     Returns
     -------
-    Designs: list
+    Designs: list[xarray replicates]
        list of replicates for Design xarray structures
     """
 
@@ -58,7 +58,7 @@ def construct_design(treatments_df, args, barcode, n_replicates=1,
 
     n_wells = plate_dims[0] * plate_dims[1]
     n_controls = n_wells - n_treatments
-    (cntrl_pos, treated_pos) = control_positions(
+    (cntrl_pos, treated_pos) = set_control_positions(
         plate_dims, n_controls)  # forced control positions
     Design1['control_wells'] = (('rows', 'cols'), cntrl_pos)
     Design1['treated_wells'] = (('rows', 'cols'), treated_pos)
@@ -80,3 +80,36 @@ def reassign_cntrls(Design, treatments):
 
     all_conc = np.array([Design[d].values for d in treatments])
     return np.all(all_conc == 0, axis=0)
+
+
+def assign_pc(Design, pc_treatments, well_index):
+    """ assign postive control wells to Design plate
+
+    Parameters
+    ----------
+    Design: xarray sturcture
+
+    pc_treatments: dict
+         dict of positive control as keys and doses as values
+    well_index: list
+         list of wells (ids) that are available for the positive control
+
+    Returns
+    -------
+    Design: xarray structre
+        updates xarray structure with positive controls assigned
+    """
+
+    pcs = pc_treatments.keys()
+    start = 0
+    for pc in pcs:
+        Design[pc] = (('rows', 'cols'), np.zeros([16, 24]))
+        panel = Design[pc].values
+        panel = panel.reshape(1, 384)
+        panel[0, well_index[
+            start:start+len(pc_treatments[pc])]] = pc_treatments[pc]
+        panel = panel.reshape([16, 24])
+        Design[pc].values = panel
+        start += len(pc_treatments[pc])
+    return Design    
+
