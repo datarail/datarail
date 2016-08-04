@@ -23,7 +23,6 @@ def _barcode_position(plate_dims):
     return well_groups
 
 
-
 def _check_sum(words):
     chksum = [True]*len(words[0])
     for w in words:
@@ -86,39 +85,37 @@ def decode_barcode(pos_wells, plate_dims=[16,24]):
 
 
 
-def get_inner_untreated_wells(Design, drugs):
-    untreated_wells = np.ones([16, 24], dtype=bool)
-    treatments = drugs + ['DMSO']
-    for i, tr in enumerate(treatments):
-        nparray = Design[tr].values
-        pos = np.nonzero(nparray)
-        for l in range(len(pos[0])):
-            untreated_wells[pos[0][l], pos[1][l]] = False
-    untreated_wells[0, :] = False
-    untreated_wells[-1, :] = False
-    untreated_wells[:, 0] = False
-    untreated_wells[:, -1] = False
-    pos = np.nonzero(untreated_wells)
-    rows = [chr(65+i) for i in pos[0]]
-    cols = [str(j+1) for j in pos[1]]
-    pos_wells = [i+j for i, j in zip(rows, cols)]
-    return pos_wells
-
-
 def assign_pc(Design, pc_treatments, well_index):
+    """ assign postive control wells to Design plate
+
+    Parameters
+    ----------
+    Design: xarray sturcture
+
+    pc_treatments: dict
+         dict of positive control as keys and doses as values
+    well_index: list
+         list of wells (ids) that are available for the positive control
+
+    Returns
+    -------
+    Design: xarray structre
+        updates xarray structure with positive controls assigned
+    """
+
     pcs = pc_treatments.keys()
     start = 0
     for pc in pcs:
         Design[pc] = (('rows', 'cols'), np.zeros([16, 24]))
         panel = Design[pc].values
-        panel = panel.reshape(1, 384) 
+        panel = panel.reshape(1, 384)
         panel[0, well_index[
             start:start+len(pc_treatments[pc])]] = pc_treatments[pc]
         panel = panel.reshape([16, 24])
         Design[pc].values = panel
         start += len(pc_treatments[pc])
     return Design    
-        
+
                          
     
                                     
