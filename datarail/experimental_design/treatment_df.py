@@ -171,8 +171,9 @@ def make_treatment_dataframe(drug_treatment_dict, nc_treatments_dict,
             all_treatments[tr_numwells[pair[1]],
                            count:count+n_treatments] = combo_doses[pair[1]]
         count += n_treatments
-    treatment_df = pd.DataFrame(all_treatments.T,
-                                columns=d1.keys())
+    tr_df = pd.DataFrame(all_treatments.T,
+                         columns=d1.keys())
+    treatment_df = tr_df.loc[(tr_df != 0).any(axis=1)]
     return treatment_df
 
 
