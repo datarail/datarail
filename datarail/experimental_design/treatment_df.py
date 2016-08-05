@@ -98,6 +98,13 @@ def make_assay(csv_file, plate_dims, barcode_prefix,
         print "%d wells are available for controls, user has alloted %d wells"\
             " for negative controls and %d for positive controls" % (
                 inner_wells_available, num_nc_treatments, num_pc_treatments)
+    elif total_control_wells < inner_wells_available:
+        print ""
+        warnings.warn(
+            'Plate will have untreated inner wells')
+        print 'There are %d untreated wells on the inner plate'\
+            'Consider alloting more wells to negative conrols' % (
+                inner_wells_available - total_control_wells)
 
     if encode_plate:
         bc_treatments = OrderedDict()
@@ -111,7 +118,7 @@ def make_assay(csv_file, plate_dims, barcode_prefix,
                 bc_treatments[bc] = [max_dose_value] * num_wells
             num_bc_treatments = sum(len(v) for v in bc_treatments.itervalues())
 
-            barcodes = [barcode_predix + chr(65+i)
+            barcodes = [barcode_prefix + chr(65+i)
                         for i in range(num_replicates)]
             num_bc_wells = [edge_barcode.encode_barcode(bc) for bc in barcodes]
             max_bc_wells = n.max(num_bc_wells)
