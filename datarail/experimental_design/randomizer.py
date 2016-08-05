@@ -4,7 +4,7 @@ import xarray as xr
 
 def randomizer(drugs, xray_struct, all_treatments,
                plate_dims, cntrl_pos, n_replicates,
-               random_seed=1, edge_bias=True):
+               randomize, edge_bias=True):
     """ Randomizes well postion of all drugs in Design xarray structure
 
     Parameters
@@ -21,14 +21,14 @@ def randomizer(drugs, xray_struct, all_treatments,
         boolean array for postion of fixed control wells
     n_replicates: int
         number of replicates in the experiment
-    random_seed: int
-        seed used for random number generator
+    randomize: boolean
+        True if treatments have to be randomized, false otherwise
     edge_bias: boolean value:
         True if edge bias is accounted for, False if not
 
     Returns
     -------
-    xray_structs: list of xarray structres
+    xray_structs: list[xarray replicates]
        Design xarray returned with randomized assignment of wells
        for drug-dose combinations
     """
@@ -36,18 +36,17 @@ def randomizer(drugs, xray_struct, all_treatments,
     n_wells = plate_dims[0]*plate_dims[1]
     n_treatments = len(all_treatments)
     cntrl_idx = np.nonzero(cntrl_pos.reshape(1, n_wells))[1]
-    if random_seed:
-        np.random.seed(random_seed)
+    if randomize:
         if edge_bias:
             # randomization with contol of edge locations
             # (keeping fixed controls at their place)
             trt_positions = edge_bias_randomizer(n_treatments, cntrl_idx,
-                                                 random_seed, plate_dims,
+                                                 plate_dims,
                                                  n_replicates)
         else:
             # unbiased randomization (keeping fixed controls at their place)
             trt_positions = unbiased_randomizer(n_treatments, cntrl_idx,
-                                                random_seed, plate_dims,
+                                                plate_dims,
                                                 n_replicates)
     else:
         # no randomization: listing conditions skipping fixed controls
@@ -71,8 +70,9 @@ def randomizer(drugs, xray_struct, all_treatments,
 
 
 def edge_bias_randomizer(n_treatments, cntrl_idx,
-                         random_seed, plate_dims, n_replicate):
-
+                         plate_dims, n_replicate):
+    
+    np.random.seed(1)
     n_edge = 5
     # split the wells based on distance from edge
     well_groups = edge_wells(plate_dims, n_edge)
@@ -139,8 +139,9 @@ def edge_bias_randomizer(n_treatments, cntrl_idx,
 
 
 def unbiased_randomizer(n_treatments, cntrl_idx,
-                        random_seed, plate_dims, n_replicate=1):
+                        plate_dims, n_replicate=1):
 
+    np.random.seed(1)
     trt_positions = -np.ones([n_replicate, n_treatments])
     wells = list(set(range(plate_dims[0]*plate_dims[1])) - set(cntrl_idx))
     for i_rep in range(n_replicate):
