@@ -33,7 +33,7 @@ def Correct_fields(dfin):
         (defaultNfield, np.sum(f_cnt[range(0,len(f_cnt)) != defaultNfield]))
 
     for f in get_count_fields(dfin):
-        dfout[f] = np.ceil((dfin[f]*dfin['Number of Analyzed Fields'])/defaultNfield)
+        dfout[f] = np.ceil((dfin[f]*defaultNfield/dfin['Number of Analyzed Fields']))
 
     dfout.drop(['Number of Analyzed Fields'], 1, inplace=True)
 

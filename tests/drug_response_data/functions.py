@@ -47,7 +47,8 @@ def allcounts(conc, x0, xctrl, GRmax, x50, Hill):
                                    'cell_count__total': totalcells,
                                    'cell_count__dead': deadcells,
                                    'cell_count': viablecells,
-                                   'corpse_count':corpses})
+                                   'corpse_count':corpses,
+                                   'frac_dead':(corpses+deadcells)/(corpses+totalcells)})
 
 
 def dose_response(x0, xctrl, GRmax, x50, Hill):
@@ -79,7 +80,7 @@ def multiple_responses(df_trt, df_gr, df_sens):
     for i in range(0,len(df_trt)):
         res = single_condition_response(df_sens, df_gr, df_trt['cell_line'][i],
                                         df_trt['agent'][i], df_trt['concentration'][i])
-        res = pd.concat([df_trt.iloc[i:(i+1),:].reset_index(drop=True), res], axis=1)
+        res = pd.concat([df_trt.iloc[i:(i+1),:].reset_index(drop=True), res.drop(['concentration'],axis=1)], axis=1)
 
         df_res = df_res.append(res)
     return df_res.reset_index(drop=True)

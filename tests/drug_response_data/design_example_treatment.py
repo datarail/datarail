@@ -52,7 +52,7 @@ for i  in range(0,len(df_plates)):
     df['treatment_duration'] = df_plates.treatment_duration[i]
     df_treatments = df_treatments.append(df)
 
-df_treatments.reset_index(inplace=True)
+df_treatments.reset_index(inplace=True, drop=True)
 df_sensitivity = pd.read_csv('./INPUT/agent_response.tsv', delimiter='\t')
 df_growth = pd.read_csv('./INPUT/cell_line__growth.tsv', delimiter='\t')
 
