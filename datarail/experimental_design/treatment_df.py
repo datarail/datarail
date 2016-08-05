@@ -8,6 +8,33 @@ import warnings
 
 def make_assay(csv_file, plate_dims, barcode_prefix,
                encode_plate=False, num_replicates=1):
+    """ Function takes tsv/csv file provided by user and constructs
+    dicts for all treatments, also provides error warning if well allotments
+    are incorrect
+
+    Parameters
+    ----------
+    csv_file: csv_file
+
+    plate_dims: list
+
+    barcode_prefix: str
+
+    encode_plate: boolean
+
+    num_replicates: int
+
+    Returns
+    -------
+    drug_treatments: dict
+
+    nc_treatments: dict
+
+    pc_treatments: dict
+
+    bc_treatments: dict
+    """
+
     df = pd.read_csv(csv_file)
     drugs = df.Compound_Name[df.Role == 'treatment'].tolist()
     positive_controls = df.Compound_Name[df.Role ==
@@ -101,15 +128,16 @@ def make_assay(csv_file, plate_dims, barcode_prefix,
     return drug_treatments, nc_treatments, pc_treatments, bc_treatments
 
 
-def make_treatment_dataframe(drug_treatment_dict, args,
-                             combo_pairs=[], combo_doses=[]):
+def make_treatment_dataframe(drug_treatment_dict, nc_treatments_dict,
+                             plate_dims, combo_pairs=[], combo_doses=[]):
     """ Function that returns a long table Dataframe for
     drug treatments with n_columns  = len(drugs) and n_rows = n_wells
 
     Parameters
     ----------
     drug_treatment_dict: dict
-             dictionary of drugs as keys and the corresponding doses as values
+             dictionary of drugs & negative_controls(nc) as keys 
+             and the corresponding doses as values
     args:
        default parameters for plate_dims, stock_concentration
     combo_pairs: list of tuples
@@ -121,33 +149,34 @@ def make_treatment_dataframe(drug_treatment_dict, args,
     Returns
     -------
     treatment_df: pandas dataframe
-             long table dataframe where columns are drugs and rows are wells
+             long table dataframe where columns are drugs/nc and rows are wells
     """
-
-    n_wells = np.dot(args.plate_dims[0], args.plate_dims[1])
-    total_treatments = len(drug_treatment_dict.keys())
+    n_wells = np.dot(plate_dims[0], plate_dims[1])
+    d1 = drug_treatment_dict.copy()
+    d1.update(nc_treatments_dict)
+    total_treatments = len(d1.keys())
     all_treatments = np.zeros([total_treatments, n_wells])
     count = 0
-    drug_num = {drug: i for i, drug in enumerate(drug_treatment_dict.keys())}
-    for drug in drug_treatment_dict.keys():
-        n_treatments = len(drug_treatment_dict[drug])
-        all_treatments[drug_num[drug],
-                       count:count+n_treatments] = drug_treatment_dict[drug]
+    tr_numwells = {comp: i for i, comp in enumerate(d1.keys())}
+    for tr in d1.keys():
+        n_treatments = len(d1[tr])
+        all_treatments[tr_numwells[tr],
+                       count:count+n_treatments] = d1[tr]
         count += n_treatments
     for pair in combo_pairs:
         n_treatments = len(combo_doses[pair[1]])
         for i in range(len(combo_doses[pair[0]])):
-            all_treatments[drug_num[pair[0]],
+            all_treatments[tr_numwells[pair[0]],
                            count:count+n_treatments] = combo_doses[pair[0]][i]
-            all_treatments[drug_num[pair[1]],
+            all_treatments[tr_numwells[pair[1]],
                            count:count+n_treatments] = combo_doses[pair[1]]
         count += n_treatments
     treatment_df = pd.DataFrame(all_treatments.T,
-                                columns=drug_treatment_dict.keys())
+                                columns=d1.keys())
     return treatment_df
 
 
-def split_text(s):    
+def split_text(s):
     for k, g in groupby(s, str.isalpha):
         yield ''.join(list(g))
 
