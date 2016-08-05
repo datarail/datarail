@@ -53,10 +53,10 @@ def make_assay(csv_file, plate_dims, barcode_prefix,
         drug_treatments[drug] = float(max_dose_value) * 1e-4 * np.logspace(
             0, 4, num_doses)
 
-    num_wells = plate_dims[0] * plate_dims[1]
-    num_treatments = sum(len(v) for v in drug_treatments.itervalues())
+    nwells_total = plate_dims[0] * plate_dims[1]
+    num_dr_treatments = sum(len(v) for v in drug_treatments.itervalues())
     num_edge_wells = get_boundary_cell_count(plate_dims)
-    inner_wells_available = num_wells - num_treatments - num_edge_wells
+    inner_wells_available = nwells_total - num_dr_treatments - num_edge_wells
 
     nc_treatments = OrderedDict()
     for nc in negative_controls:
@@ -85,7 +85,8 @@ def make_assay(csv_file, plate_dims, barcode_prefix,
             num_wells = df['num_wells'].ix[
                 df['Compound_Name'] == pc].values[0]
             max_dose_value, _ = split_text(max_dose)
-            pc_treatments[pc] = [max_dose_value] * num_wells
+            pc_name = 'pc_' + pc
+            pc_treatments[pc_name] = [max_dose_value] * num_wells
         num_pc_treatments = sum(len(v) for v in pc_treatments.itervalues())
         total_control_wells += num_pc_treatments
     except NameError:
@@ -103,8 +104,15 @@ def make_assay(csv_file, plate_dims, barcode_prefix,
         warnings.warn(
             'Plate will have untreated inner wells')
         print 'There are %d untreated wells on the inner plate'\
-            'Consider alloting more wells to negative conrols' % (
+            ' Consider alloting more wells to negative conrols' % (
                 inner_wells_available - total_control_wells)
+
+    total_treatments = num_dr_treatments + total_control_wells
+    total_inner_wells = nwells_total - num_edge_wells
+    error_msg = "total number of treatments for drugs and controls (%d) "\
+                "exceed number of inner wells (%d)" % (
+                    total_treatments, total_inner_wells)
+    assert total_treatments <= total_inner_wells, error_msg
 
     if encode_plate:
         bc_treatments = OrderedDict()
@@ -115,15 +123,16 @@ def make_assay(csv_file, plate_dims, barcode_prefix,
                 num_wells = df['num_wells'].ix[
                     df['Compound_Name'] == bc].values[0]
                 max_dose_value, _ = split_text(max_dose)
-                bc_treatments[bc] = [max_dose_value] * num_wells
+                bc_name = 'bc_' + bc
+                bc_treatments[bc_name] = [max_dose_value] * num_wells
             num_bc_treatments = sum(len(v) for v in bc_treatments.itervalues())
 
             barcodes = [barcode_prefix + chr(65+i)
                         for i in range(num_replicates)]
-            num_bc_wells = [edge_barcode.encode_barcode(bc) for bc in barcodes]
-            max_bc_wells = n.max(num_bc_wells)
+            num_bc_wells = [len(edge_barcode.encode_barcode(bc))
+                            for bc in barcodes]
+            max_bc_wells = max(num_bc_wells)
             if num_bc_treatments < max_bc_wells:
-                print ""
                 warnings.warn(
                     'Insufficent number of wells alloted for encodng barcode')
                 print "barcode requires %d wells, user has alloted %d wells"\
@@ -135,7 +144,7 @@ def make_assay(csv_file, plate_dims, barcode_prefix,
     return drug_treatments, nc_treatments, pc_treatments, bc_treatments
 
 
-def make_treatment_dataframe(drug_treatment_dict, nc_treatments_dict,
+def make_treatment_dataframe(treatments_dict,
                              plate_dims, combo_pairs=[], combo_doses=[]):
     """ Function that returns a long table Dataframe for
     drug treatments with n_columns  = len(drugs) and n_rows = n_wells
@@ -143,7 +152,7 @@ def make_treatment_dataframe(drug_treatment_dict, nc_treatments_dict,
     Parameters
     ----------
     drug_treatment_dict: dict
-             dictionary of drugs & negative_controls(nc) as keys 
+             dictionary of drugs & negative_controls(nc) as keys
              and the corresponding doses as values
     args:
        default parameters for plate_dims, stock_concentration
@@ -158,9 +167,14 @@ def make_treatment_dataframe(drug_treatment_dict, nc_treatments_dict,
     treatment_df: pandas dataframe
              long table dataframe where columns are drugs/nc and rows are wells
     """
+    drug_treatment_dict = treatments_dict[0]
+    nc_treatments_dict = treatments_dict[1]
+    pc_treatments_dict = treatments_dict[2]
     n_wells = np.dot(plate_dims[0], plate_dims[1])
     d1 = drug_treatment_dict.copy()
     d1.update(nc_treatments_dict)
+    if pc_treatments_dict:
+        d1.update(pc_treatments_dict)
     total_treatments = len(d1.keys())
     all_treatments = np.zeros([total_treatments, n_wells])
     count = 0
