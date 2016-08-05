@@ -6,7 +6,7 @@ import edge_barcode
 import warnings
 
 
-def make_assay(csv_file, plate_dims, barcode_prefix,
+def read_input(csv_file, plate_dims, barcode_prefix,
                encode_plate=False, num_replicates=1):
     """ Function takes tsv/csv file provided by user and constructs
     dicts for all treatments, also provides error warning if well allotments
@@ -103,7 +103,7 @@ def make_assay(csv_file, plate_dims, barcode_prefix,
         print ""
         warnings.warn(
             'Plate will have untreated inner wells')
-        print 'There are %d untreated wells on the inner plate'\
+        print 'There are %d untreated wells on the inner plate.'\
             ' Consider alloting more wells to negative conrols' % (
                 inner_wells_available - total_control_wells)
 
