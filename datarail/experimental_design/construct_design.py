@@ -1,13 +1,16 @@
-from get_hmslid import get_hmslid
-from control_position import set_control_positions
-from randomizer import randomizer
+# from datarail.databases import lincs_client
 import xarray as xr
 import numpy as np
 import cPickle as pickle
+from treatment_df import make_treatment_dataframe
+import edge_barcode
+import well_mapper
 
 
-def construct_design(treatments_df, args, barcode, n_replicates=1,
-                     random_seed=True, edge_bias=True):
+def construct_design(treatments_dict, barcode_prefix, encode_barcode=True,
+                     plate_dims=[16, 24], nreps=1, randomize=True,
+                     edge_bias=True, Seed=50,
+                     well_volume=10, stock_conc='50uM'):
     """ construction of plate layout
 
     Parameters
@@ -30,29 +33,27 @@ def construct_design(treatments_df, args, barcode, n_replicates=1,
     Designs: list[xarray replicates]
        list of replicates for Design xarray structures
     """
-
+    treatments_df = make_treatment_dataframe(treatments_dict, plate_dims)
+    barcodes = [barcode_prefix + chr(65+i) for i in range(nreps)]
     treatments = treatments_df.keys()
-    # cleaning up the treatments_df to only have rows with a treatment
-    drug_treatment_df = treatments_df.iloc[
-        (treatments_df.values != 0).any(axis=1), :]
-    n_treatments = len(drug_treatment_df)
-    plate_dims = args.plate_dims
+    n_treatments = len(treatments_df)
     plate_rows = list(map(chr, range(65, 65+plate_dims[0])))
     plate_cols = range(1, plate_dims[1] + 1)
-    Design1 = xr.Dataset({k: (['rows', 'cols'], np.zeros(args.plate_dims))
+    Design1 = xr.Dataset({k: (['rows', 'cols'], np.zeros(plate_dims))
                           for k in treatments},
                          coords={'rows': plate_rows, 'cols': plate_cols})
 
-    Design1.attrs['Seed'] = args.Seed
-    Design1.attrs['well_volume'] = args.well_volume
+    Design1.attrs['Seed'] = Seed
+    Design1.attrs['well_volume'] = well_volume
     Design1.attrs['plate_dims'] = plate_dims
     # check that the length of barcode match the number of replicates
     # Design1.attrs['barcode'] = barcode
 
     for treatment in treatments:
         Design1[treatment].attrs['DrugName'] = treatment
-        Design1[treatment].attrs['Stock_conc'] = args.stock_conc
-        Design1[treatment].attrs['HMSLid'] = get_hmslid([treatment])[treatment]
+        Design1[treatment].attrs['Stock_conc'] = stock_conc
+        # Design1[treatment].attrs['HMSLid'] = lincs_client.get_hmslid(
+        #    [treatment])[treatment]
     Design1['Perturbations'] = (('rows', 'cols'), np.zeros(plate_dims))
     Design1['Vehicle'] = (('rows', 'cols'), np.zeros(plate_dims))
 
@@ -62,16 +63,23 @@ def construct_design(treatments_df, args, barcode, n_replicates=1,
         plate_dims, n_controls)  # forced control positions
     Design1['control_wells'] = (('rows', 'cols'), cntrl_pos)
     Design1['treated_wells'] = (('rows', 'cols'), treated_pos)
-    Designs = randomizer(treatments, Design1, drug_treatment_df, plate_dims,
-                         cntrl_pos, n_replicates, random_seed, edge_bias)
+    Designs = randomizer(treatments, Design1, treatments_df, plate_dims,
+                         cntrl_pos, nreps, randomize, edge_bias)
 
     for i in range(len(Designs)):
-        Designs[i].attrs['barcode'] = barcode[i]
+        Designs[i].attrs['barcode'] = barcodes[i]
+        if encode_barcode:
+            bc_treatments = treatments_dict[3]
+            bc_wells = edge_barcode.encode_barcode(barcodes[i])
+            well_index = [well_mapper.get_well_index(well, plate_dims=[16, 24])
+                          for well in bc_wells]
+            Designs[i] = assign_bc(Designs[i], bc_treatments,
+                                   well_index)
         Designs[i]['control_wells'] = (('rows', 'cols'),
                                        reassign_cntrls(Designs[i], treatments))
 
     for i in range(len(Designs)):
-        filename = '%s.pkl' % barcode[i]
+        filename = '%s.pkl' % barcodes[i]
         pickle.dump(Designs, open(filename, 'wb'), protocol=-1)
     return Designs
 
@@ -82,15 +90,15 @@ def reassign_cntrls(Design, treatments):
     return np.all(all_conc == 0, axis=0)
 
 
-def assign_pc(Design, pc_treatments, well_index):
+def assign_bc(Design, pc_treatments, well_index):
     """ assign postive control wells to Design plate
 
     Parameters
     ----------
     Design: xarray sturcture
 
-    pc_treatments: dict
-         dict of positive control as keys and doses as values
+    bc_treatments: dict
+         dict of barcode compounds as keys and doses as values
     well_index: list
          list of wells (ids) that are available for the positive control
 
@@ -111,5 +119,255 @@ def assign_pc(Design, pc_treatments, well_index):
         panel = panel.reshape([16, 24])
         Design[pc].values = panel
         start += len(pc_treatments[pc])
-    return Design    
+    return Design
 
+
+def randomizer(drugs, xray_struct, all_treatments,
+               plate_dims, cntrl_pos, n_replicates,
+               randomize, edge_bias=True):
+    """ Randomizes well postion of all drugs in Design xarray structure
+
+    Parameters
+    ----------
+    drugs: list
+       list of drugs
+    xray_struct: list of xarray
+       xarray structure of drug and negative controls
+    all_treatments: pandas dataframe
+        long table for drugs and treatments
+    plate_dims: array
+        plate dimensions
+    cntrl_pos: ndarray
+        boolean array for postion of fixed control wells
+    n_replicates: int
+        number of replicates in the experiment
+    random_seed: int
+        seed used for random number generator
+    edge_bias: boolean value:
+        True if edge bias is accounted for, False if not
+
+    Returns
+    -------
+    xray_structs: list[xarray replicates]
+       Design xarray returned with randomized assignment of wells
+       for drug-dose combinations
+    """
+
+    n_wells = plate_dims[0]*plate_dims[1]
+    n_treatments = len(all_treatments)
+    cntrl_idx = np.nonzero(cntrl_pos.reshape(1, n_wells))[1]
+    if randomize:
+        if edge_bias:
+            # randomization with contol of edge locations
+            # (keeping fixed controls at their place)
+            trt_positions = edge_bias_randomizer(n_treatments, cntrl_idx,
+                                                 plate_dims, n_replicates)
+        else:
+            # unbiased randomization (keeping fixed controls at their place)
+            trt_positions = unbiased_randomizer(n_treatments, cntrl_idx,
+                                                plate_dims, n_replicates)
+    else:
+        # no randomization: listing conditions skipping fixed controls
+        wells = list(set(range(plate_dims[0]*plate_dims[1])) - set(cntrl_idx))
+        trt_positions = [np.array(wells[:n_treatments])
+                         for i in range(n_replicates)]
+
+    xray_structs = [xr.Dataset() for i in range(n_replicates)]
+    for i in range(n_replicates):
+        xray_structs[i] = xray_struct.copy(deep=True)
+
+        for drug in drugs:
+            panel = xray_structs[i][drug].values
+            panel = panel.reshape(1, n_wells)
+            panel[0, trt_positions[i].astype('int')]\
+                = all_treatments[drug].values
+            panel = panel.reshape(plate_dims)
+            xray_structs[i][drug].values = panel
+
+    return xray_structs
+
+
+def edge_bias_randomizer(n_treatments, cntrl_idx,
+                         plate_dims, n_replicate):
+
+    np.random.seed(1)
+    n_edge = 5
+    # split the wells based on distance from edge
+    well_groups = edge_wells(plate_dims, n_edge)
+    # remove fixed controls
+    well_groups = [list(set(w)-set(cntrl_idx)) for w in well_groups]
+    # number of wells available
+    n_wells = sum([len(w) for w in well_groups])
+    n_cntrls = [int(np.floor((n_wells-n_treatments)*(len(w)*1./n_wells)))
+                for w in well_groups]
+    # assign the number of controls foe each layer
+    n_cntrls[-1] = n_wells - n_treatments - sum(n_cntrls[:-1])
+    n_trtwells = [len(w) - n_cntrls[i] for i, w in enumerate(well_groups)]
+
+    # count how often a condition is at the distance i from the edge
+    edge_cnt = np.zeros([n_treatments, n_edge])
+    trt_positions = -np.ones([n_replicate, n_treatments])
+
+    for i_rep in range(n_replicate):
+        min_cnt = edge_cnt.min(0)
+        # bypass the condition for the inner most set of wells
+        min_cnt[-1] = n_replicate
+
+        for j in (i for i in range(n_edge) if n_trtwells[i] > 0):
+            # going through each layer and finding treatment to assign
+
+            # picking the positions (left ones will be the controls)
+            pos = np.random.choice(range(len(well_groups[j])),
+                                   n_trtwells[j], replace=False)
+            pos = [w for i, w in enumerate(well_groups[j]) if i in pos]
+
+            # picking the treatments
+            candidate_trts = np.nonzero(np.logical_and(
+                edge_cnt[:, j] <= min_cnt[j],
+                trt_positions[i_rep, :] == -1))[0]
+
+            if len(candidate_trts) >= n_trtwells[j]:
+                idx = np.random.choice(range(len(candidate_trts)),
+                                       n_trtwells[j], replace=False)
+            else:
+                idx = candidate_trts
+                candidate_trts = np.nonzero(np.logical_and(
+                    edge_cnt[:, j] <= min_cnt[j]+1,
+                    trt_positions[i_rep, :] == -1)[0])
+                # assuming that the number of treated wells will
+                # be filled up on the second round
+                # -- may need an iterative approach
+                idx += np.random.choice(range(len(candidate_trts)),
+                                        n_trtwells[j]-len(idx), replace=False)
+
+            # print candidate_trts
+            # print (i_rep, j, len(candidate_trts), len(pos), len(idx))
+            # print np.vstack((np.array(pos),idx, candidate_trts[idx])).T
+
+            edge_cnt[candidate_trts[idx], j] += 1
+            trt_positions[i_rep, candidate_trts[idx]] = pos
+            # print trt_positions[i_rep,:]
+            # print (sum(edge_cnt[:, j]),
+            #       sum(trt_positions[i_rep, :] == -1),
+            #       sum(trt_positions[i_rep, :] >= 0))
+
+        assert(np.all(trt_positions[i_rep, :] >= 0))
+
+    return trt_positions
+
+
+def unbiased_randomizer(n_treatments, cntrl_idx,
+                        plate_dims, n_replicate=1):
+    np.random.seed(1)
+    trt_positions = -np.ones([n_replicate, n_treatments])
+    wells = list(set(range(plate_dims[0]*plate_dims[1])) - set(cntrl_idx))
+    for i_rep in range(n_replicate):
+        pos = np.random.choice(wells, size=n_treatments, replace=False)
+        trt_positions[i_rep, :] = pos
+    return trt_positions
+
+
+def edge_wells(plate_dims, n_edge):
+    n_wells = plate_dims[0]*plate_dims[1]
+    well_dist = np.array([[np.min([i, plate_dims[1]-i-1, j,
+                                   plate_dims[0]-j-1])
+                           for i in range(plate_dims[1])]
+                          for j in range(plate_dims[0])])
+    well_groups = [[j for j, w in enumerate(
+        well_dist.reshape(n_wells, 1)) if w[0] == i]
+                   for i in range(n_edge-1)]
+    well_groups.append([i for i in range(n_wells)
+                        if i not in sum(well_groups, [])])
+    return well_groups
+
+
+def set_control_positions(plate_dims, control_count):
+    """ Number and position of control wells assigned based on
+    plate dimension and number of available wells for control
+
+    Parameters
+    ---------
+    plate_dims: array
+         dimension of plate
+    control_count: int
+         number of wells available for controls
+
+    Returns
+    -------
+    control_pos: boolean array
+          array of dimensions mathing plate dims which
+         are True for wells assigned as control wells
+    """
+
+    min_inner_positions = 6
+    cntrl_pos = np.zeros(plate_dims,
+                         dtype=bool)
+    treated_pos = np.ones(plate_dims,
+                          dtype=bool)
+
+    assert control_count >= 12,\
+        "For placing controls on the edge, at least 12 controls are required"
+
+    row_pos1 = [int(i-1) for i
+                in np.linspace(1, plate_dims[0], 4)]
+    row_pos2 = [int(i-1) for i
+                in np.linspace(1, plate_dims[0], 3)]
+    col_pos = [int(i-1) for i
+               in np.linspace(1, plate_dims[1], 4)]
+
+    # fixed positions for the controls
+    if control_count < 14:
+        print ('Only 6 controls on the edge,'
+               'would be better with at least 14 in controls in total')
+        cntrl_pos[row_pos1, col_pos[1]] = True
+        cntrl_pos[row_pos1, col_pos[2]] = True
+        cntrl_pos[row_pos2[1], col_pos] = True
+    else:
+        cntrl_pos[row_pos1 + [row_pos2[1]], col_pos[1]] = True
+        cntrl_pos[row_pos1 + [row_pos2[1]], col_pos[2]] = True
+        cntrl_pos[row_pos1[1], col_pos] = True
+        cntrl_pos[row_pos1[2], col_pos] = True
+
+    outer_edge = get_boundary_cell_count(plate_dims)
+    inner_dims = [i-2 for i in plate_dims]
+    inner_edge = get_boundary_cell_count(inner_dims)
+
+    # remove the outer wells if enough controls
+    if control_count >= (outer_edge + inner_edge + min_inner_positions):
+        # first and second outer layers
+        cntrl_pos[[0, 1, -2, -1], :] = True
+        cntrl_pos[:, [0, 1, -2, -1]] = True
+        treated_pos[[0, 1, -2, -1], :] = False
+        treated_pos[:, [0, 1, -2, -1]] = False
+
+    elif control_count >= (outer_edge + min_inner_positions):
+        # outer most layer
+        cntrl_pos[[0, -1], :] = True
+        cntrl_pos[:, [0, -1]] = True
+        treated_pos[[0, -1], :] = False
+        treated_pos[:, [0, -1]] = False
+    elif control_count >= 20:
+        # only the corners
+        cntrl_pos[[0, -1], 0] = True
+        cntrl_pos[[0, -1], -1] = True
+        treated_pos[[0, -1], 0] = False
+        treated_pos[[0, -1], -1] = False
+
+    return (cntrl_pos, treated_pos)
+
+
+def get_boundary_cell_count(plate_dims):
+    """ get number of wells in outer or inner edges
+
+    Parameter
+    ---------
+    plate_dims: array
+         dimensions of plate
+
+    Returns
+    -------
+    boundary_cell_count: int
+           number of wells in the edges
+    """
+    boundary_cell_count = 2 * (plate_dims[0] + plate_dims[1] - 2)
+    return boundary_cell_count
