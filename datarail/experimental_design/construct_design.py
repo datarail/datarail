@@ -2,15 +2,15 @@
 import xarray as xr
 import numpy as np
 import cPickle as pickle
-from treatment_df import make_treatment_dataframe
+from process_assay import make_treatment_dataframe
 import edge_barcode
 import well_mapper
 
 
-def construct_design(treatments_dict, barcode_prefix, encode_barcode=True,
-                     plate_dims=[16, 24], nreps=1, randomize=True,
-                     edge_bias=True, Seed=50,
-                     well_volume=10, stock_conc='50uM'):
+def make_layout(treatments_dict, barcode_prefix, encode_barcode=True,
+                plate_dims=[16, 24], nreps=1, randomize=True,
+                edge_bias=True, Seed=50,
+                well_volume=10, stock_conc='50uM'):
     """ construction of plate layout
 
     Parameters
