@@ -371,3 +371,61 @@ def get_boundary_cell_count(plate_dims):
     """
     boundary_cell_count = 2 * (plate_dims[0] + plate_dims[1] - 2)
     return boundary_cell_count
+
+
+def assign_well_index(treatment_df, plate_dims, n_replicates,
+                      randomize=False, biased_randomization=False):
+    """ Given treatment dataframe, return additional column
+        with randmized well id
+
+    Parameter
+    ---------
+    treatment_df: pandas dataframe
+         long table of treatments as columns and doses as rows
+
+    plate_dims: list
+         physical dimensions of the plate
+
+    n_replicates: int
+         number of replicates
+
+    randomize: boolean
+         True if allotment of drug-dose to wells is randomized
+
+    biased_randomization: boolean
+         True if randomization is biased in order to avoid assigning
+         a given drug-dose combination to the same well across replicates
+
+    Returns
+    -------
+    dfw_wells: pandas dataframe
+          treatment_df appended with the addtional column of well index
+
+    """
+
+    dfw_wells = treatment_df.copy()
+    n_wells = plate_dims[0] * plate_dims[1]
+    n_treatments = len(dfw_wells)
+    n_controls = n_wells - n_treatments
+    cntrl_pos, _ = set_control_positions(plate_dims, n_controls)
+    cntrl_idx = np.nonzero(cntrl_pos.reshape(1, n_wells))[1]
+    if randomize:
+        if biased_randomization:
+            # randomization with contol of edge locations
+            # (keeping fixed controls at their place)
+            trt_positions = edge_bias_randomizer(n_treatments, cntrl_idx,
+                                                 plate_dims, n_replicates)
+        else:
+            # unbiased randomization (keeping fixed controls at their place)
+            trt_positions = unbiased_randomizer(n_treatments, cntrl_idx,
+                                                plate_dims, n_replicates)
+    else:
+        # no randomization: listing conditions skipping fixed controls
+        wells = list(set(range(plate_dims[0]*plate_dims[1])) - set(cntrl_idx))
+        trt_positions = [np.array(wells[:n_treatments])
+                         for i in range(n_replicates)]
+        
+    for i in range(n_replicates):
+        col_name = 'rep%d_well_index' % (i+1)
+        dfw_wells[col_name] = trt_positions[i, :]
+    return dfw_wells
