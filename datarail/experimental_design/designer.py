@@ -483,3 +483,19 @@ def make_arrays(treatment_df_wells, plate_dims, len_combo, rep):
     tr_panel = tr_panel.reshape([16, 24, len_combo])
     conc_panel = conc_panel.reshape([16, 24, len_combo])
     return tr_panel, conc_panel
+
+
+def make_xr(conc_panel, tr_panel, plate_dims, len_combo):
+    plate_rows = list(map(chr, range(65, 65+plate_dims[0])))
+    plate_cols = range(1, plate_dims[1] + 1)
+    combo_dims = ['single']
+    if len_combo > 1:
+        combo_dims += ["combo_drug_%d" % d for d in range(1, len_combo)]
+
+    design = xr.Dataset({'concentrations': (['rows', 'cols', 'combos'],
+                                            conc_panel)},
+                        coords={'treatments': (['rows', 'cols', 'combos'],
+                                               tr_panel),
+                                'rows': plate_rows, 'cols': plate_cols,
+                                'combos': combo_dims})
+    return design
