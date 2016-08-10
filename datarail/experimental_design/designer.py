@@ -424,8 +424,62 @@ def assign_well_index(treatment_df, plate_dims, n_replicates,
         wells = list(set(range(plate_dims[0]*plate_dims[1])) - set(cntrl_idx))
         trt_positions = [np.array(wells[:n_treatments])
                          for i in range(n_replicates)]
-        
+
     for i in range(n_replicates):
         col_name = 'rep%d_well_index' % (i+1)
         dfw_wells[col_name] = trt_positions[i, :]
     return dfw_wells
+
+
+def make_arrays(treatment_df_wells, plate_dims, len_combo, rep):
+    """ makes 3d array of concentrations, treatments that will be used
+    as input to construct the xarray data structure
+
+    Parameters
+    ----------
+    treatment_df_wells: pandas dataframe
+        long table of treatments
+
+    plate_dims: list
+       physical plate dimensions
+
+    len_combo: int
+       the max number of treatments in a single well
+
+    rep: int
+      the replicate number
+
+    Returns
+    -------
+    tr_panel: 3-dimensional array
+       array of treaments
+    conc_panel, 3-dimension array
+       array of treatment concentrations
+    """
+
+    df = treatment_df_wells.copy()
+    cols = df.columns.tolist()
+    treatments = [t for t in cols if 'well_index' not in t]
+    query_column = 'rep%d_well_index' % rep
+    indeces = df[query_column].tolist()
+    n_wells = plate_dims[0] * plate_dims[1]
+    conc_panel = np.zeros([1, n_wells, len_combo])
+    tr_panel = np.zeros([1, n_wells, len_combo], dtype='|S20')
+
+    for ind in indeces:
+        df_row = df[df[query_column] == ind]
+        tr_list = df_row[df_row[treatments] != 0].dropna(
+            axis=1).columns.tolist()
+        conc_list = df_row[df_row[treatments] != 0].dropna(
+            axis=1).values[0].tolist()
+        if len(tr_list) == 1:
+            tr_panel[0, ind, 0] = tr_list[0]
+            conc_panel[0, ind, 0] = conc_list[0]
+        elif len(tr_list) > 1:
+            for tr in range(1, len(tr_list)+1):
+                print tr
+                tr_panel[0, ind, tr] = tr_list[tr-1]
+                conc_panel[0, ind, tr] = conc_list[tr-1]
+    tr_panel = tr_panel.reshape([16, 24, len_combo])
+    conc_panel = conc_panel.reshape([16, 24, len_combo])
+    return tr_panel, conc_panel
