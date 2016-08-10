@@ -9,7 +9,7 @@ import well_mapper
 
 def make_layout(treatments_dict, barcode_prefix, encode_barcode=True,
                 plate_dims=[16, 24], nreps=1, randomize=True,
-                edge_bias=True, Seed=50,
+                biased_randomization=True, Seed=50,
                 well_volume=10, stock_conc='50uM'):
     """ construction of plate layout
 
@@ -34,54 +34,67 @@ def make_layout(treatments_dict, barcode_prefix, encode_barcode=True,
        list of replicates for Design xarray structures
     """
     treatments_df = make_treatment_dataframe(treatments_dict, plate_dims)
-    barcodes = [barcode_prefix + chr(65+i) for i in range(nreps)]
-    treatments = treatments_df.keys()
-    n_treatments = len(treatments_df)
-    plate_rows = list(map(chr, range(65, 65+plate_dims[0])))
-    plate_cols = range(1, plate_dims[1] + 1)
-    Design1 = xr.Dataset({k: (['rows', 'cols'], np.zeros(plate_dims))
-                          for k in treatments},
-                         coords={'rows': plate_rows, 'cols': plate_cols})
-
-    Design1.attrs['Seed'] = Seed
-    Design1.attrs['well_volume'] = well_volume
-    Design1.attrs['plate_dims'] = plate_dims
-    # check that the length of barcode match the number of replicates
-    # Design1.attrs['barcode'] = barcode
-
-    for treatment in treatments:
-        Design1[treatment].attrs['DrugName'] = treatment
-        Design1[treatment].attrs['Stock_conc'] = stock_conc
-        # Design1[treatment].attrs['HMSLid'] = lincs_client.get_hmslid(
-        #    [treatment])[treatment]
-    Design1['Perturbations'] = (('rows', 'cols'), np.zeros(plate_dims))
-    Design1['Vehicle'] = (('rows', 'cols'), np.zeros(plate_dims))
-
-    n_wells = plate_dims[0] * plate_dims[1]
-    n_controls = n_wells - n_treatments
-    (cntrl_pos, treated_pos) = set_control_positions(
-        plate_dims, n_controls)  # forced control positions
-    Design1['control_wells'] = (('rows', 'cols'), cntrl_pos)
-    Design1['treated_wells'] = (('rows', 'cols'), treated_pos)
-    Designs = randomizer(treatments, Design1, treatments_df, plate_dims,
-                         cntrl_pos, nreps, randomize, edge_bias)
-
-    for i in range(len(Designs)):
-        Designs[i].attrs['barcode'] = barcodes[i]
-        if encode_barcode:
-            bc_treatments = treatments_dict[3]
-            bc_wells = edge_barcode.encode_barcode(barcodes[i])
-            well_index = [well_mapper.get_well_index(well, plate_dims=[16, 24])
-                          for well in bc_wells]
-            Designs[i] = assign_bc(Designs[i], bc_treatments,
-                                   well_index)
-        Designs[i]['control_wells'] = (('rows', 'cols'),
-                                       reassign_cntrls(Designs[i], treatments))
-
-    for i in range(len(Designs)):
-        filename = '%s.pkl' % barcodes[i]
-        pickle.dump(Designs, open(filename, 'wb'), protocol=-1)
+    treatment_df_wells = assign_well_index(treatments_df, plate_dims, nreps,
+                                           randomize, biased_randomization)
+    len_combo = 1  # harcoded for now
+    Designs = []
+    for rep in range(1, nreps+1):
+        tr_panel, conc_panel = make_arrays(treatment_df_wells, plate_dims,
+                                           len_combo, rep)
+        design = make_xr(conc_panel, tr_panel, plate_dims, len_combo)
+        Designs.append(design)
     return Designs
+
+    # barcodes = [barcode_prefix + chr(65+i) for i in range(nreps)]
+    # treatments = treatments_df.keys()
+    # n_treatments = len(treatments_df)
+    # plate_rows = list(map(chr, range(65, 65+plate_dims[0])))
+    # plate_cols = range(1, plate_dims[1] + 1)
+    # Design1 = xr.Dataset({k: (['rows', 'cols'], np.zeros(plate_dims))
+    #                       for k in treatments},
+    #                      coords={'rows': plate_rows, 'cols': plate_cols})
+
+    # Design1.attrs['Seed'] = Seed
+    # Design1.attrs['well_volume'] = well_volume
+    # Design1.attrs['plate_dims'] = plate_dims
+    # # check that the length of barcode match the number of replicates
+    # # Design1.attrs['barcode'] = barcode
+
+    # for treatment in treatments:
+    #     Design1[treatment].attrs['DrugName'] = treatment
+    #     Design1[treatment].attrs['Stock_conc'] = stock_conc
+    #     # Design1[treatment].attrs['HMSLid'] = lincs_client.get_hmslid(
+    #     #    [treatment])[treatment]
+    # Design1['Perturbations'] = (('rows', 'cols'), np.zeros(plate_dims))
+    # Design1['Vehicle'] = (('rows', 'cols'), np.zeros(plate_dims))
+
+    # n_wells = plate_dims[0] * plate_dims[1]
+    # n_controls = n_wells - n_treatments
+    # (cntrl_pos, treated_pos) = set_control_positions(
+    #     plate_dims, n_controls)  # forced control positions
+    # Design1['control_wells'] = (('rows', 'cols'), cntrl_pos)
+    # Design1['treated_wells'] = (('rows', 'cols'), treated_pos)
+    # Designs = randomizer(treatments, Design1, treatments_df, plate_dims,
+    #                      cntrl_pos, nreps, randomize, edge_bias)
+
+    # for i in range(len(Designs)):
+    #     Designs[i].attrs['barcode'] = barcodes[i]
+    #     if encode_barcode:
+    #         bc_treatments = treatments_dict[3]
+    #         bc_wells = edge_barcode.encode_barcode(barcodes[i])
+    #         well_index = [well_mapper.get_well_index(well,
+    # plate_dims=[16, 24])
+    #                       for well in bc_wells]
+    #         Designs[i] = assign_bc(Designs[i], bc_treatments,
+    #                                well_index)
+    #     # Designs[i]['control_wells'] = (('rows', 'cols'),
+    #     #                               reassign_cntrls(Designs[i],
+    #     # treatments))
+
+    # for i in range(len(Designs)):
+    #     filename = '%s.pkl' % barcodes[i]
+    #     pickle.dump(Designs, open(filename, 'wb'), protocol=-1)
+    # return Designs
 
 
 def reassign_cntrls(Design, treatments):
