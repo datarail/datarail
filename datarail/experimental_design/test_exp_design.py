@@ -6,14 +6,15 @@ plate_dims = [16, 24]
 barcode_prefix = 'DUBI1_'
 num_replicates = 3
 
-treatments_df = read_input(csv_file, plate_dims,
-                           barcode_prefix, encode_plate=True,
-                           num_replicates=3)
+treatment_dicts = read_input(csv_file, plate_dims,
+                             barcode_prefix, encode_plate=True,
+                             num_replicates=3)
 
-drug_treatments = treatments_df[0]
-nc_treatments = treatments_df[1]
-pc_treatments = treatments_df[2]
-bc_treatments = treatments_df[3]
+
+drug_treatments = treatment_dicts[0]
+nc_treatments = treatment_dicts[1]
+pc_treatments = treatment_dicts[2]
+bc_treatments = treatment_dicts[3]
 
 
 print "\n Report of the experimental assay"
@@ -36,7 +37,7 @@ print "This experiment has %d compound%s used for encoding the barcode\n" % (
     len(bc_treatments.keys()), [p[0] if len(bc_treatments.keys()) ==
                                 1 else p[1] for p in [('', 's')]][0])
 
-Designs = make_layout(treatments_df, barcode_prefix,
+Designs = make_layout(treatment_dicts, barcode_prefix,
                       encode_barcode=True,
                       plate_dims=[16, 24], nreps=num_replicates,
-                      randomize=True, edge_bias=True)
+                      randomize=True, biased_randomization=True)
