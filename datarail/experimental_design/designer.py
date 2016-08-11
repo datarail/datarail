@@ -9,8 +9,9 @@ import well_mapper
 
 def make_layout(treatments_dict, barcode_prefix, encode_barcode=True,
                 plate_dims=[16, 24], nreps=1, randomize=True,
-                biased_randomization=True, Seed=50,
-                well_volume=10, stock_conc='50uM'):
+                biased_randomization=True,
+                combo_pairs=[], combo_doses=[], combo_k=1,
+                Seed=50, well_volume=10, stock_conc='50uM'):
     """ construction of plate layout
 
     Parameters
@@ -33,21 +34,22 @@ def make_layout(treatments_dict, barcode_prefix, encode_barcode=True,
     Designs: list[xarray replicates]
        list of replicates for Design xarray structures
     """
-    treatments_df = make_treatment_dataframe(treatments_dict, plate_dims)
+    treatments_df = make_treatment_dataframe(treatments_dict, plate_dims,
+                                             combo_pairs, combo_doses)
     treatment_df_wells = assign_well_index(treatments_df, plate_dims, nreps,
                                            randomize, biased_randomization)
-    len_combo = 1  # harcoded for now
+    
     barcodes = [barcode_prefix + chr(65+i) for i in range(nreps)]
     Designs = []
     for rep in range(1, nreps+1):
         tr_panel, conc_panel = make_arrays(treatment_df_wells, plate_dims,
-                                           len_combo, rep)
+                                           combo_k, rep)
         if encode_barcode:
             bc_treatments = treatments_dict[3]
             tr_panel, conc_panel = assign_bc(bc_treatments, barcodes, rep,
                                              tr_panel, conc_panel,
-                                             len_combo, plate_dims)
-        design = make_xr(conc_panel, tr_panel, plate_dims, len_combo)
+                                             combo_k, plate_dims)
+        design = make_xr(conc_panel, tr_panel, plate_dims, combo_k)
         Designs.append(design)
     return Designs
 
@@ -59,7 +61,7 @@ def reassign_cntrls(Design, treatments):
 
 
 def assign_bc(bc_treatments, barcodes, rep, tr_panel, conc_panel,
-              len_combo, plate_dims):
+              combo_k, plate_dims):
     rep_ind = rep - 1
     bc_wells = edge_barcode.encode_barcode(barcodes[rep_ind])
     well_index = [well_mapper.get_well_index(well, plate_dims=[16, 24])
@@ -70,14 +72,14 @@ def assign_bc(bc_treatments, barcodes, rep, tr_panel, conc_panel,
         bc_list += [k]*len(v)
         conc_list += v
     n_wells = plate_dims[0] * plate_dims[1]
-    tr_panel = tr_panel.reshape([1, n_wells, len_combo])
-    conc_panel = conc_panel.reshape([1, n_wells, len_combo])
+    tr_panel = tr_panel.reshape([1, n_wells, combo_k])
+    conc_panel = conc_panel.reshape([1, n_wells, combo_k])
 
     for id, well_id in enumerate(well_index):
         tr_panel[0, well_id, 0] = bc_list[id]
         conc_panel[0, well_id, 0] = conc_list[id]
-    conc_panel = conc_panel.reshape([plate_dims[0], plate_dims[1], len_combo])
-    tr_panel = tr_panel.reshape([plate_dims[0], plate_dims[1], len_combo])
+    conc_panel = conc_panel.reshape([plate_dims[0], plate_dims[1], combo_k])
+    tr_panel = tr_panel.reshape([plate_dims[0], plate_dims[1], combo_k])
     return tr_panel, conc_panel
 
 
@@ -325,7 +327,7 @@ def assign_well_index(treatment_df, plate_dims, n_replicates,
     return dfw_wells
 
 
-def make_arrays(treatment_df_wells, plate_dims, len_combo, rep):
+def make_arrays(treatment_df_wells, plate_dims, combo_k, rep):
     """ makes 3d array of concentrations, treatments that will be used
     as input to construct the xarray data structure
 
@@ -337,7 +339,7 @@ def make_arrays(treatment_df_wells, plate_dims, len_combo, rep):
     plate_dims: list
        physical plate dimensions
 
-    len_combo: int
+    combo_k: int
        the max number of treatments in a single well
 
     rep: int
@@ -357,8 +359,8 @@ def make_arrays(treatment_df_wells, plate_dims, len_combo, rep):
     query_column = 'rep%d_well_index' % rep
     indeces = df[query_column].tolist()
     n_wells = plate_dims[0] * plate_dims[1]
-    conc_panel = np.zeros([1, n_wells, len_combo])
-    tr_panel = np.zeros([1, n_wells, len_combo], dtype='|S20')
+    conc_panel = np.zeros([1, n_wells, combo_k])
+    tr_panel = np.zeros([1, n_wells, combo_k], dtype='|S20')
 
     for ind in indeces:
         df_row = df[df[query_column] == ind]
@@ -374,17 +376,17 @@ def make_arrays(treatment_df_wells, plate_dims, len_combo, rep):
                 print tr
                 tr_panel[0, ind, tr] = tr_list[tr-1]
                 conc_panel[0, ind, tr] = conc_list[tr-1]
-    tr_panel = tr_panel.reshape([16, 24, len_combo])
-    conc_panel = conc_panel.reshape([16, 24, len_combo])
+    tr_panel = tr_panel.reshape([16, 24, combo_k])
+    conc_panel = conc_panel.reshape([16, 24, combo_k])
     return tr_panel, conc_panel
 
 
-def make_xr(conc_panel, tr_panel, plate_dims, len_combo):
+def make_xr(conc_panel, tr_panel, plate_dims, combo_k):
     plate_rows = list(map(chr, range(65, 65+plate_dims[0])))
     plate_cols = range(1, plate_dims[1] + 1)
     combo_dims = ['single']
-    if len_combo > 1:
-        combo_dims += ["combo_drug_%d" % d for d in range(1, len_combo)]
+    if combo_k > 1:
+        combo_dims += ["combo_drug_%d" % d for d in range(1, combo_k)]
 
     design = xr.Dataset({'concentrations': (['rows', 'cols', 'combos'],
                                             conc_panel)},
