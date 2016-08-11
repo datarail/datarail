@@ -21,11 +21,11 @@ concentrations = np.hstack((1, 10 ** np.linspace(1, 4, 9)))
 drug_class1 = ['IU1']
 drug_class2 = ['MI-2']
 combo_pairs = [(d1, d2) for d1 in drug_class1 for d2 in drug_class2]
-combo_k = max([len(c) for c in combo_pairs]) + 1
+combo_k = max([len(c) for c in combo_pairs])
 combo_doses = {}
 combo_drugs = drug_class1 + drug_class2
 for drug in combo_drugs:
-    combo_doses[drug] = [concentrations[4]]
+    combo_doses[drug] = concentrations[4:6]
 
 print "\n Report of the experimental assay"
 print "-----------------------------------\n"

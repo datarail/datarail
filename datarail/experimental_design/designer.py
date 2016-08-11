@@ -368,14 +368,9 @@ def make_arrays(treatment_df_wells, plate_dims, combo_k, rep):
             axis=1).columns.tolist()
         conc_list = df_row[df_row[treatments] != 0].dropna(
             axis=1).values[0].tolist()
-        if len(tr_list) == 1:
-            tr_panel[0, ind, 0] = tr_list[0]
-            conc_panel[0, ind, 0] = conc_list[0]
-        elif len(tr_list) > 1:
-            for tr in range(1, len(tr_list)+1):
-                print tr
-                tr_panel[0, ind, tr] = tr_list[tr-1]
-                conc_panel[0, ind, tr] = conc_list[tr-1]
+        for tr in range(len(tr_list)):
+            tr_panel[0, ind, tr] = tr_list[tr]
+            conc_panel[0, ind, tr] = conc_list[tr]
     tr_panel = tr_panel.reshape([16, 24, combo_k])
     conc_panel = conc_panel.reshape([16, 24, combo_k])
     return tr_panel, conc_panel
