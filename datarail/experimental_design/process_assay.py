@@ -50,11 +50,12 @@ def read_input(csv_file, plate_dims, barcode_prefix,
         num_doses = df['num_wells'].ix[
             df['Compound_Name'] == drug].values[0]
         max_dose_value, _ = split_text(max_dose)
-        drug_treatments[drug] = float(max_dose_value) * 1e-4 * np.logspace(
-            0, 4, num_doses)
+        conc = float(max_dose_value) * 1e-4 * np.logspace(0, 4, num_doses)
+        drug_treatments[drug] = {'doses': conc, 'role': 'treatment'}
 
     nwells_total = plate_dims[0] * plate_dims[1]
-    num_dr_treatments = sum(len(v) for v in drug_treatments.itervalues())
+    num_dr_treatments = sum(len(v['doses']) for v
+                            in drug_treatments.itervalues())
     num_edge_wells = get_boundary_cell_count(plate_dims)
     inner_wells_available = nwells_total - num_dr_treatments - num_edge_wells
 
@@ -65,8 +66,10 @@ def read_input(csv_file, plate_dims, barcode_prefix,
         num_wells = df['num_wells'].ix[
             df['Compound_Name'] == nc].values[0]
         max_dose_value, _ = split_text(max_dose)
-        nc_treatments[nc] = [max_dose_value] * num_wells
-    num_nc_treatments = sum(len(v) for v in nc_treatments.itervalues())
+        nc_treatments[nc] = {'doses': [max_dose_value] * num_wells,
+                             'role': 'negative_control'}
+    num_nc_treatments = sum(len(v['doses']) for v
+                            in nc_treatments.itervalues())
     total_control_wells = num_nc_treatments
 
     if num_nc_treatments < 8:
@@ -85,9 +88,11 @@ def read_input(csv_file, plate_dims, barcode_prefix,
             num_wells = df['num_wells'].ix[
                 df['Compound_Name'] == pc].values[0]
             max_dose_value, _ = split_text(max_dose)
-            pc_name = 'pc_' + pc
-            pc_treatments[pc_name] = [max_dose_value] * num_wells
-        num_pc_treatments = sum(len(v) for v in pc_treatments.itervalues())
+            # pc_name = 'pc_' + pc
+            pc_treatments[pc] = {'doses': [max_dose_value] * num_wells,
+                                 'role': 'positive_control'}
+        num_pc_treatments = sum(len(v['doses']) for v
+                                in pc_treatments.itervalues())
         total_control_wells += num_pc_treatments
     except NameError:
         pass
@@ -123,9 +128,11 @@ def read_input(csv_file, plate_dims, barcode_prefix,
                 num_wells = df['num_wells'].ix[
                     df['Compound_Name'] == bc].values[0]
                 max_dose_value, _ = split_text(max_dose)
-                bc_name = 'bc_' + bc
-                bc_treatments[bc_name] = [max_dose_value] * num_wells
-            num_bc_treatments = sum(len(v) for v in bc_treatments.itervalues())
+                # bc_name = 'bc_' + bc
+                bc_treatments[bc] = {'doses': [max_dose_value] * num_wells,
+                                     'role': 'Barcode'}
+            num_bc_treatments = sum(len(v['doses']) for v
+                                    in bc_treatments.itervalues())
 
             barcodes = [barcode_prefix + chr(65+i)
                         for i in range(num_replicates)]
@@ -179,11 +186,13 @@ def make_treatment_dataframe(treatments_dict,
     all_treatments = np.zeros([total_treatments, n_wells])
     count = 0
     tr_numwells = {comp: i for i, comp in enumerate(d1.keys())}
+    role = []
     for tr in d1.keys():
-        n_treatments = len(d1[tr])
+        n_treatments = len(d1[tr]['doses'])
         all_treatments[tr_numwells[tr],
-                       count:count+n_treatments] = d1[tr]
+                       count:count+n_treatments] = d1[tr]['doses']
         count += n_treatments
+        role += [d1[tr]['role']] * n_treatments
     for pair in combo_pairs:
         n_treatments = len(combo_doses[pair[1]])
         for i in range(len(combo_doses[pair[0]])):
@@ -195,6 +204,7 @@ def make_treatment_dataframe(treatments_dict,
     tr_df = pd.DataFrame(all_treatments.T,
                          columns=d1.keys())
     treatment_df = tr_df.loc[(tr_df != 0).any(axis=1)]
+    treatment_df['Role'] = role
     return treatment_df
 
 
