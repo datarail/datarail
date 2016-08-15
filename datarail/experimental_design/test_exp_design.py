@@ -17,15 +17,15 @@ nc_treatments = treatment_dicts[1]
 pc_treatments = treatment_dicts[2]
 bc_treatments = treatment_dicts[3]
 
-concentrations = np.hstack((1, 10 ** np.linspace(1, 4, 9)))
-drug_class1 = ['IU1']
-drug_class2 = ['MI-2']
-combo_pairs = [(d1, d2) for d1 in drug_class1 for d2 in drug_class2]
-combo_k = max([len(c) for c in combo_pairs])
-combo_doses = {}
-combo_drugs = drug_class1 + drug_class2
-for drug in combo_drugs:
-    combo_doses[drug] = concentrations[4:6]
+# concentrations = np.hstack((1, 10 ** np.linspace(1, 4, 9)))
+# drug_class1 = ['IU1']
+# drug_class2 = ['MI-2']
+# combo_pairs = [(d1, d2) for d1 in drug_class1 for d2 in drug_class2]
+# combo_k = max([len(c) for c in combo_pairs])
+# combo_doses = {}
+# combo_drugs = drug_class1 + drug_class2
+# for drug in combo_drugs:
+#     combo_doses[drug] = concentrations[4:6]
 
 print "\n Report of the experimental assay"
 print "-----------------------------------\n"
@@ -50,6 +50,7 @@ print "This experiment has %d compound%s used for encoding the barcode\n" % (
 Designs = make_layout(treatment_dicts, barcode_prefix,
                       encode_barcode=True,
                       plate_dims=[16, 24], nreps=num_replicates,
-                      randomize=True, biased_randomization=True,
-                      combo_pairs=combo_pairs, combo_doses=combo_doses,
-                      combo_k=combo_k)
+                      randomize=True, biased_randomization=True)
+#,
+#                      combo_pairs=combo_pairs, combo_doses=combo_doses,
+#                      combo_k=combo_k)
