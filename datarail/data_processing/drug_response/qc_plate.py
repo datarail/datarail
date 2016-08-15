@@ -1,23 +1,24 @@
 import pandas as pd
 import xarray as xr
 import numpy as np
-import datarail.utils.plate_fcts as pltfct
-import matplotlib.pyplot as plt
+from scipy import stats
 import time
+import matplotlib.pyplot as plt
+import matplotlib.backends.backend_pdf
+import datarail.utils.plate_fcts as pltfct
 
-reload(pltfct)
 
-df = pd.read_csv('../../tests/drug_response_data/OUTPUT/Example1_biased_results.tsv', sep='\t')
 
-xray = pltfct.dfplate2xr(df)
 
-def Plate_bias(xray):
-    xrcc = xray['cell_count']
+def Plate_bias(xray, variable='cell_count', filename=None):
+    xrcc = xray[variable]
 
-    plt.ion()
+    if filename is not None:
+        pdf = matplotlib.backends.backend_pdf.PdfPages(filename)
 
-    for i,b in enumerate(xrcc['barcode'].values[9:]):
-        plt.figure(i, figsize=[10, 5])
+    for i,b in enumerate(xrcc['barcode'].values):
+        fig = 99
+        plt.figure(fig, figsize=[10,5])
         plt.clf()
 
         # whole plate
@@ -25,11 +26,17 @@ def Plate_bias(xray):
         himg = xrcc.loc[b].plot.imshow()
         pltfct.axis_plate(himg, xray.plate_dims)
 
+        plate_mean = xrcc.loc[b].values.mean()
+
         # distribution by column
         h = plt.axes([.7, .1, .25, .2])
         s = xrcc.loc[b].std(dim='row')
         m = xrcc.loc[b].mean(dim='row')
         plt.errorbar(m.column, m.values, s.values)
+        plt.plot(m.column[[0, -1]], 2*[plate_mean], '-k', linewidth=2)
+        for i in m.column:
+            p = stats.ttest_1samp(xrcc.loc[b,:,i], plate_mean).pvalue
+            plt.text(i, m.loc[i]+1.2*s.loc[i], '*'*(1*(p<.05)+(p<.01)), horizontalalignment='center')
         h.axes.axes.set_xlim([.5, xray.plate_dims[1]])
         h.axes.set_xticks(range(1, xray.plate_dims[1]+1,2))
         h.axes.axes.set_ylim(himg.get_clim())
@@ -40,6 +47,10 @@ def Plate_bias(xray):
         s = xrcc.loc[b].std(dim='column')
         m = xrcc.loc[b].mean(dim='column')
         plt.errorbar(m.row, m.values, s.values)
+        plt.plot(m.row[[0, -1]], 2*[plate_mean], '-k', linewidth=2)
+        for i in m.row:
+            p = stats.ttest_1samp(xrcc.loc[b,i,:], plate_mean).pvalue
+            plt.text(i, m.loc[i]+1.2*s.loc[i], '*'*(1*(p<.05)+(p<.01)), horizontalalignment='center')
         h.axes.axes.set_xlim([.5, xray.plate_dims[0]])
         h.axes.axes.set_ylim(himg.get_clim())
         h.axes.set_xticks(range(1, xray.plate_dims[0]+1,2))
@@ -48,8 +59,7 @@ def Plate_bias(xray):
         h.set_title('Row bias')
 
         # distribution by distance from the edge
-        m = np.array([])
-        s = np.array([])
+        m,s,p = 3*[np.array([])]
         for i in range(1,1+xray.plate_dims[0]/2):
             v = np.append(xrcc.loc[b][np.any([xrcc.loc[b].row==i,
                                               xrcc.loc[b].row==xray.plate_dims[0]-i+1],axis=0),:].values,
@@ -57,19 +67,24 @@ def Plate_bias(xray):
                                                  xrcc.loc[b].column==xray.plate_dims[1]-i+1],axis=0)].values)
             m = np.append(m, v.mean())
             s = np.append(s, v.std())
+            p = np.append(p, stats.ttest_1samp(v, plate_mean).pvalue)
 
 
         h = plt.axes([.7, .7, .25, .2])
         plt.errorbar(range(1,1+xray.plate_dims[0]/2), m, s)
-        h.axes.axes.set_xlim([.5, xray.plate_dims[0]/2])
+        plt.plot([1, xray.plate_dims[0]/2], 2*[plate_mean], '-k', linewidth=2)
+        for i in (p<.05).nonzero()[0]:
+            plt.text(i+1, m[i]+1.2*s[i], '*'*(1+(p[i]<.01)), horizontalalignment='center')
+        h.axes.axes.set_xlim([.5, .5+xray.plate_dims[0]/2])
         h.axes.axes.set_ylim(himg.get_clim())
         h.set_title('Edge bias')
 
-        ################################
         # save the image
+        if filename is not None:
+            pdf.savefig( fig )
 
-    ##############################################
-    # compile a single pdf with all the images
+    if filename is not None:
+        pdf.close()
 
 
 ####################################

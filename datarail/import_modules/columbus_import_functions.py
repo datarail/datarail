@@ -3,10 +3,31 @@ import numpy as np
 import datetime
 import re
 import os
-from datarail.utils.plate_fcts import *
+import datarail.utils.plate_fcts as pltfct
 
 
-def Read_Columbus(filename):
+def Columbus_processing(filename, outputfile=''):
+
+    df = _Read_Columbus(filename)
+
+    df = _Correct_fields(df)
+
+    df = _Define_count_fields(df,
+                        cell_count='Hoechst_pos-Hoechst_LDR_pos',
+                        addfields=(('cell_count__total', 'Hoechst_pos'),
+                                   ('corpse_count','LDR_pos_Hoechst_neg'),
+                                   ('cell_count__dead', 'Hoechst_LDR_pos')))
+
+    if len(outputfile)!=0:
+        df.to_csv(outputfile, index=False, sep='\t')
+        print 'File \n\t%s \nprocessed and saved in \n\t%s' % (filename, outputfile)
+
+    return df
+
+
+##############################################################
+
+def _Read_Columbus(filename):
 
     dfin = pd.read_csv(filename, delimiter='\t')
 
@@ -15,15 +36,14 @@ def Read_Columbus(filename):
                                        "%Y-%m-%d %H:%M:%S") for i in range(0,len(dfin))]
 
     dfout = pd.concat([pd.Series(barcode, name='barcode'), pd.Series(date, name='date'), dfin], axis = 1)
-    dfout['well'] = [well_as_2digit(w) for w in dfout.Well]
+    dfout['well'] = [pltfct.well_as_2digit(w) for w in dfout.Well]
 
     dfout.drop(['Result', 'URL', 'Well'], 1, inplace=True)
-
 
     return dfout
 
 
-def Correct_fields(dfin):
+def _Correct_fields(dfin):
 
     dfout = dfin.copy()
 
@@ -32,7 +52,7 @@ def Correct_fields(dfin):
     print 'Default number of fields: %i ; %i wells with missing field(s)' % \
         (defaultNfield, np.sum(f_cnt[range(0,len(f_cnt)) != defaultNfield]))
 
-    for f in get_count_fields(dfin):
+    for f in _get_count_fields(dfin):
         dfout[f] = np.ceil((dfin[f]*defaultNfield/dfin['Number of Analyzed Fields']))
 
     dfout.drop(['Number of Analyzed Fields'], 1, inplace=True)
@@ -40,17 +60,17 @@ def Correct_fields(dfin):
     return dfout
 
 
-def Calculate_time(dfin, time0):
+def _Calculate_time(dfin, time0):
     #### for the timecourse data --- not implemented yet ---
     dfout = dfin.copy()
 
     return dfout
 
-def Define_count_fields(dfin,
+def _Define_count_fields(dfin,
                         cell_count='Hoechst_pos-Hoechst_LDR_pos',
                         addfields=[]):
 
-    fs = get_count_fields(dfin)
+    fs = _get_count_fields(dfin)
 
     # get the cell count from the fields from Columbus
     cc_f = re.split('[+-/*]', cell_count)
@@ -88,28 +108,10 @@ def Define_count_fields(dfin,
     return dfout
 
 
-def Columbus_processing(filename, outputfile=''):
-
-    df = Read_Columbus(filename)
-
-    df = Correct_fields(df)
-
-    df = Define_count_fields(df,
-                        cell_count='Hoechst_pos-Hoechst_LDR_pos',
-                        addfields=(('cell_count__total', 'Hoechst_pos'),
-                                   ('corpse_count','LDR_pos_Hoechst_neg'),
-                                   ('cell_count__dead', 'Hoechst_LDR_pos')))
-
-    if len(outputfile)!=0:
-        df.to_csv(outputfile, index=False, sep='\t')
-        print 'File \n\t%s \nprocessed and saved in \n\t%s' % (filename, outputfile)
-
-    return df
-
 
 ################################## helper functions ###############################
 
-def get_count_fields(dfin):
+def _get_count_fields(dfin):
 
     numdf = dfin.copy()
     numdf = numdf.select_dtypes(include=['int16', 'int32', 'int64', 'float16', 'float32', 'float64'])
