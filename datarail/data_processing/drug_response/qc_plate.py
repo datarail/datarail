@@ -6,9 +6,9 @@ import time
 import matplotlib.pyplot as plt
 import matplotlib.backends.backend_pdf
 import datarail.utils.plate_fcts as pltfct
+import datarail.utils.drug_treatment as drgtrt
 
-
-
+reload(drgtrt)
 
 def Plate_bias(xray, variable='cell_count', filename=None):
     xrcc = xray[variable]
@@ -87,8 +87,35 @@ def Plate_bias(xray, variable='cell_count', filename=None):
         pdf.close()
 
 
-####################################
-########################
+
 ### need to check for bias across the negative controls
 
-###################################
+def Negative_control_bias(df, variable='cell_count', filename=None):
+
+    if filename is not None:
+        pdf = matplotlib.backends.backend_pdf.PdfPages(filename)
+    fig = 199
+
+    vars = set(df.columns) - (drgtrt.default_confounder_varaibles - {'barcode'})
+    dctrl = df.loc[df.role == 'negative_control', vars]
+
+    dgrp = dctrl.groupby(['cell_line', 'barcode'])[variable]
+
+    plt.figure(fig, figsize=[8,5])
+    plt.clf()
+    h = plt.axes([.12, .2, .8, .75])
+
+    m = dgrp.mean();
+    plt.bar(np.array(range(len(dgrp)))-.4, m)
+    plt.errorbar(range(len(dgrp)), m, dgrp.std(), fmt='.k')
+
+    xlabels = [m.index.levels[0][i] + ' ' + m.index.levels[1][j] for i,j in
+               zip(m.index.labels[0], m.index.labels[1])]
+
+    h.axes.axes.set_xticks(np.array(range(len(dgrp)))-.3)
+    h.axes.axes.set_xticklabels(xlabels, rotation=45)
+    h.axes.axes.set_ylabel(variable + ' negative_control')
+
+    if filename is not None:
+        pdf.savefig( fig )
+        pdf.close()

@@ -62,7 +62,7 @@ def single_condition_response(df_sensitivity, df_growth, cell_line,  agent, conc
     ''' generate values based on predefined table and selected conditions '''
 
     para = df_sensitivity[(df_sensitivity.agent==agent) & (df_sensitivity.cell_line==cell_line)]
-    xctrl = np.ceil(x0 * 2**(time/df_growth[df_growth.cell_line==cell_line]['doubling_time'].values[0]))
+    xctrl = np.ceil(x0 * 2.**(1.*time/df_growth[df_growth.cell_line==cell_line]['doubling_time'].values[0]))
 
     if len(para)==0:
         return allcounts(concentration, x0, xctrl, 1, np.inf, .01)
@@ -79,7 +79,8 @@ def multiple_responses(df_trt, df_gr, df_sens):
 
     for i in range(0,len(df_trt)):
         res = single_condition_response(df_sens, df_gr, df_trt['cell_line'][i],
-                                        df_trt['agent'][i], df_trt['concentration'][i])
+                                        df_trt['agent'][i], df_trt['concentration'][i],
+                                        df_trt['treatment_duration'][i])
         res = pd.concat([df_trt.iloc[i:(i+1),:].reset_index(drop=True), res.drop(['concentration'],axis=1)], axis=1)
 
         df_res = df_res.append(res)
@@ -168,7 +169,8 @@ def Columbus_fixed(df_trt, df_res):
 
         df_Columb = df_Columb.append(df_)
 
-    df_Columb.drop(['concentration', 'cell_count', 'frac_dead', 'agent', 'cell_line', 'well'], 1, inplace=True)
+    df_Columb.drop(['concentration', 'cell_count', 'frac_dead', 'agent',
+                    'cell_line', 'well', 'role'], 1, inplace=True)
     df_Columb.rename(index=str, columns={'cell_count__total': 'Hoechst_pos',
                                       'cell_count__dead': 'Hoechst_LDR_pos',
                                       'corpse_count': 'LDR_pos_Hoechst_neg'},

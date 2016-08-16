@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from datarail.import_modules.columbus_import.columbus_import_functions import Columbus_processing
+from datarail.import_modules.columbus_import_functions import Columbus_processing
 
 
 
@@ -17,10 +17,10 @@ def add_plate_info(dfdata, dfplate):
 def add_treatments(dfdata, trtfolder):
     ''' add the the data about the treatment'''
 
-    trt_files = dfdata.treatment_file.unique()
+    trt_files = list(set(dfdata.treatment_file) - set(['-', '']))
     trt = [pd.read_csv(trtfolder + f, sep='\t') for f in trt_files]
 
-    dfout = pd.DataFrame([])
+    dfout = pd.merge(dfdata.loc[np.any([dfdata.treatment_file == '',dfdata.treatment_file =='-'], axis=0),:],_untreated_plate(), on='well')
     for (i,tf) in enumerate(trt_files):
         dfout = dfout.append(pd.merge(dfdata.loc[dfdata.treatment_file == tf, :],
                                       trt[i], on='well'))
@@ -35,3 +35,17 @@ def load_example():
     trtfolder = '../../drug_response_data/OUTPUT/'
 
     return {'data':dfdata, 'plates':dfplate, 'folder':trtfolder}
+
+def _untreated_plate():
+    well, agent, concentration, role = [[] for _ in range(4)]
+    for ir in range(1,17):
+        for ic in range(1,25):
+            well += [chr(64+ir)+str(ic).zfill(2)]
+            agent += ['-']
+            concentration += [0]
+            role += ['untreated']
+    return pd.DataFrame.from_dict(dict({
+        'well':well,
+        'agent':agent,
+        'concentration':concentration,
+        'role':role}))
