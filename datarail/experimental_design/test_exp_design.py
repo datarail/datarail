@@ -1,6 +1,5 @@
 from process_assay import read_input
 from designer import make_layout
-import numpy as np
 
 csv_file = 'test_user_input2.csv'
 plate_dims = [16, 24]
@@ -51,6 +50,6 @@ Designs = make_layout(treatment_dicts, barcode_prefix,
                       encode_barcode=True,
                       plate_dims=[16, 24], nreps=num_replicates,
                       randomize=True, biased_randomization=True)
-#,
+
 #                      combo_pairs=combo_pairs, combo_doses=combo_doses,
 #                      combo_k=combo_k)

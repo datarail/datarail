@@ -74,7 +74,7 @@ def assign_bc(bc_treatments, barcodes, rep, tr_panel, conc_panel,
     for id, well_id in enumerate(well_index):
         tr_panel[0, well_id, 0] = bc_list[id]
         conc_panel[0, well_id, 0] = conc_list[id]
-        role_panel[0, well_id] = 'Barcode'
+        role_panel[0, well_id] = 'barcode'
     conc_panel = conc_panel.reshape([plate_dims[0], plate_dims[1], combo_k])
     tr_panel = tr_panel.reshape([plate_dims[0], plate_dims[1], combo_k])
     role_panel = role_panel.reshape([plate_dims[0], plate_dims[1]])
@@ -426,16 +426,17 @@ def make_xr_stack(treatment_stack, concentration_stack,
     combo_dims = ['single']
     if combo_k > 1:
         combo_dims += ["combo_drug_%d" % d for d in range(1, combo_k)]
-    
-    design_stack = xr.Dataset({'concentrations': (['rows', 'cols',
+
+    design_stack = xr.Dataset({'concentrations': (['rows', 'columns',
                                                    'combos', 'plates'],
                                                   concentration_stack)},
-                              coords={'treatments': (['rows', 'cols',
+                              coords={'treatments': (['rows', 'columns',
                                                       'combos', 'plates'],
                                                      treatment_stack),
-                                      'Role': (['rows', 'cols', 'plates'],
+                                      'role': (['rows', 'columns', 'plates'],
                                                role_stack),
-                                      'rows': plate_rows, 'cols': plate_cols,
+                                      'rows': plate_rows,
+                                      'columns': plate_cols,
                                       'combos': combo_dims,
                                       'plates': barcodes})
     return design_stack
