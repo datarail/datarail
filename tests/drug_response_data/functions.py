@@ -89,6 +89,19 @@ def multiple_responses(df_trt, df_gr, df_sens):
 
 ######### functions to generate artefacts #############
 
+def low_cell_count_plate(df_in, barcode, strength=.9):
+    ''' plate based effect :
+    - lower the number of 'viable' cells '''
+
+    df = df_in.copy()
+    for b in barcode:
+        df.cell_count[df.barcode==b] *= strength
+
+    df.cell_count = np.ceil(df.cell_count)
+    df.cell_count__total = df.cell_count + df.cell_count__dead
+    df.frac_dead = (df.corpse_count+df.cell_count__dead)/(df.corpse_count+df.cell_count__total)
+
+    return df
 
 def add_edge_effect(df_, strength=.3):
     ''' edge effects :
@@ -114,7 +127,7 @@ def add_edge_effect(df_, strength=.3):
 
     # exponential decay, half-distance is 1.5
     Effect = strength*np.exp(-(EdgeDist-1)/1.5)
-    NewDeadCells = np.ceil(df_.cell_count*Effect);
+    NewDeadCells = np.ceil(df_.cell_count*Effect)
     df_.cell_count__dead += NewDeadCells
     df_.cell_count -= NewDeadCells
     df_.frac_dead = (df_.corpse_count+df_.cell_count__dead)/(df_.corpse_count+df_.cell_count__total)

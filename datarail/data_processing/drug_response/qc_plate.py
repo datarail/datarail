@@ -3,12 +3,13 @@ import xarray as xr
 import numpy as np
 from scipy import stats
 import time
+import itertools
 import matplotlib.pyplot as plt
 import matplotlib.backends.backend_pdf
 import datarail.utils.plate_fcts as pltfct
 import datarail.utils.drug_treatment as drgtrt
 
-reload(drgtrt)
+reload(pltfct)
 
 def Plate_bias(xray, variable='cell_count', filename=None):
     xrcc = xray[variable]
@@ -25,6 +26,7 @@ def Plate_bias(xray, variable='cell_count', filename=None):
         plt.axes([.05, .15, .56, .7])
         himg = xrcc.loc[b].plot.imshow()
         pltfct.axis_plate(himg, xray.plate_dims)
+
 
         plate_mean = xrcc.loc[b].values.mean()
 
@@ -96,25 +98,40 @@ def Negative_control_bias(df, variable='cell_count', filename=None):
         pdf = matplotlib.backends.backend_pdf.PdfPages(filename)
     fig = 199
 
-    vars = set(df.columns) - (drgtrt.default_confounder_varaibles - {'barcode'})
-    dctrl = df.loc[df.role == 'negative_control', vars]
+    vars = list(set(df.columns) - drgtrt.default_confounder_variables)
+    dctrl = df.loc[df.role == 'negative_control', ['barcode'] + vars]
 
-    dgrp = dctrl.groupby(['cell_line', 'barcode'])[variable]
+    # heuristic approach to define keys
+    keyvars = list(set(vars) - drgtrt.possible_model_variables - \
+                   {'role', 'agent', 'concentration'})
+    keyvals = dctrl.loc[:,keyvars].drop_duplicates()
 
-    plt.figure(fig, figsize=[8,5])
+    plt.figure(fig, figsize=[1+2*len(keyvals),3.5])
     plt.clf()
-    h = plt.axes([.12, .2, .8, .75])
 
-    m = dgrp.mean();
-    plt.bar(np.array(range(len(dgrp)))-.4, m)
-    plt.errorbar(range(len(dgrp)), m, dgrp.std(), fmt='.k')
+    for ik in range(len(keyvals)):
+        dkey = dctrl.loc[(dctrl.loc[:,keyvars] == keyvals.iloc[ik,:]).values.all(axis=1),:]
+        dgrp = dkey.groupby('barcode')[variable]
+        barcodes = dgrp.groups.keys()
+        p = np.ones(len(barcodes))
+        for i,b in enumerate(barcodes):
+            p[i] = stats.ttest_ind(np.array(dgrp.get_group(b).values),
+                                   np.concatenate([dgrp.get_group(k).values for k in dgrp.groups.keys() if k != b])).pvalue
 
-    xlabels = [m.index.levels[0][i] + ' ' + m.index.levels[1][j] for i,j in
-               zip(m.index.labels[0], m.index.labels[1])]
+        h = plt.axes([.1+.04/len(keyvals)+ik*.9/len(keyvals), .2, .56/len(keyvals), .7])
 
-    h.axes.axes.set_xticks(np.array(range(len(dgrp)))-.3)
-    h.axes.axes.set_xticklabels(xlabels, rotation=45)
-    h.axes.axes.set_ylabel(variable + ' negative_control')
+        m = dgrp.mean()
+        s = dgrp.std()
+        plt.bar(np.array(range(len(dgrp)))-.4, m)
+        plt.errorbar(range(len(dgrp)), m, s, fmt='.k')
+        for  i in (p<.05).nonzero()[0]:
+            plt.text(i, m[i]+1.2*s[i], '*'*(1+(p[i]<.01)), horizontalalignment='center')
+
+        h.set_title(' - '.join(keyvals.iloc[ik,:].values.astype('str')))
+        h.axes.axes.set_xticks(np.array(range(len(dgrp)))-.3)
+        h.axes.axes.set_xticklabels(barcodes, rotation=45)
+        if ik==0: h.axes.axes.set_ylabel(variable + ' negative_control')
+        h.axes.axes.set_xlim([-.5, len(dgrp)-.5])
 
     if filename is not None:
         pdf.savefig( fig )

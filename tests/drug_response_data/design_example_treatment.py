@@ -6,10 +6,10 @@ reload(fct)
 # create the plate info file
 
 df_plates = pd.DataFrame(dict({
-    'barcode':['MH1_%02i'%i for i in range(1,13)],
-    'cell_line':['CL_%1i'%(i%4+1) for i in range(0,12)],
-    'treatment_file':['-']*4+['Example1_treatment_%1i.tsv'%i for i in [1]*4+[2]*4],
-    'treatment_duration':[0]*4+[72]*8}))
+    'barcode':['MH1_%02i'%i for i in range(1,21)],
+    'cell_line':['CL_%1i'%(i%5+1) for i in range(0,20)],
+    'treatment_file':['-']*5+['Example1_treatment_%1i.tsv'%i for i in [1]*5+[2]*5+[3]*5],
+    'treatment_duration':[0]*5+[72]*15}))
 
 
 df_plates.to_csv('./OUTPUT/Example1_plate_info.tsv', index=False, sep='\t')
@@ -20,7 +20,7 @@ np.random.seed(0)
 
 df_trtfiles = [];
 
-for i in (1,2):
+for i in range(3):
     well, agent, concentration, role = [[] for _ in range(4)]
 
     for ir in range(2,16):
@@ -41,7 +41,7 @@ for i in (1,2):
         'concentration':concentration,
         'role':role}))]
 
-    df_trtfiles[i-1].to_csv('./OUTPUT/Example1_treatment_' + str(i) + '.tsv', index=False, sep='\t')
+    df_trtfiles[i].to_csv('./OUTPUT/Example1_treatment_' + str(i+1) + '.tsv', index=False, sep='\t')
 
 
 # creat the output files with cell counts
@@ -67,7 +67,8 @@ df_sensitivity = pd.read_csv('./INPUT/agent_response.tsv', delimiter='\t')
 df_growth = pd.read_csv('./INPUT/cell_line__growth.tsv', delimiter='\t')
 
 df_res = fct.multiple_responses(df_treatments, df_growth, df_sensitivity)
-df_bias = fct.add_edge_effect(df_res, .1)
+df_bias = fct.low_cell_count_plate(fct.add_edge_effect(df_res, .1),
+                                   ['MH1_10', 'MH1_18', 'MH1_19'])
 
 df_Col = fct.Columbus_fixed(df_treatments, df_bias)
 
