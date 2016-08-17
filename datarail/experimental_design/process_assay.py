@@ -203,9 +203,9 @@ def make_treatment_dataframe(treatments_dict,
             count += n_treatments
     tr_df = pd.DataFrame(all_treatments.T,
                          columns=d1.keys())
-    treatment_df = tr_df.loc[(tr_df != 0).any(axis=1)]
-    treatment_df['Role'] = role
-    return treatment_df
+    tr_df = tr_df.loc[(tr_df != 0).any(axis=1)]
+    tr_df.loc[:, 'Role'] = role
+    return tr_df
 
 
 def split_text(s):
