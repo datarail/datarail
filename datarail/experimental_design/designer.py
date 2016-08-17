@@ -7,7 +7,7 @@ import edge_barcode
 import well_mapper
 
 
-def make_layout(treatments_dict, barcode_prefix, encode_barcode=True,
+def make_layout(treatment_dicts, barcode_prefix, encode_barcode=True,
                 plate_dims=[16, 24], nreps=1, randomize=True,
                 biased_randomization=True,
                 combo_pairs=[], combo_doses=[], combo_k=1,
@@ -34,11 +34,11 @@ def make_layout(treatments_dict, barcode_prefix, encode_barcode=True,
     Designs: list[xarray replicates]
        list of replicates for Design xarray structures
     """
-    treatments_df = make_treatment_dataframe(treatments_dict, plate_dims,
+    treatments_df = make_treatment_dataframe(treatment_dicts, plate_dims,
                                              combo_pairs, combo_doses)
     treatment_df_wells = assign_well_index(treatments_df, plate_dims, nreps,
                                            randomize, biased_randomization)
-    bc_treatments = treatments_dict[3]
+    bc_treatments = treatment_dicts[3]
 
     barcodes = [barcode_prefix + chr(65+i) for i in range(nreps)]
     treatment_stack, concentration_stack, role_stack = stack_plates(
@@ -61,7 +61,6 @@ def assign_bc(bc_treatments, barcodes, rep, tr_panel, conc_panel,
     bc_wells = edge_barcode.encode_barcode(barcodes[rep_ind])
     well_index = [well_mapper.get_well_index(well, plate_dims=[16, 24])
                   for well in bc_wells]
-    print well_index
     conc_list, bc_list = [], []
     for k, v in bc_treatments.iteritems():
         bc_list += [k]*len(v['doses'])
@@ -363,6 +362,7 @@ def make_arrays(treatment_df_wells, plate_dims, combo_k, rep_num):
     role_panel = np.zeros([1, n_wells], dtype='|S20')
 
     for ind in indeces:
+        ind = int(ind)
         df_row = df[df[query_column] == ind]
         tr_list = df_row[df_row[treatments] != 0].dropna(
             axis=1).columns.tolist()
