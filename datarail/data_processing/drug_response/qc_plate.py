@@ -8,8 +8,9 @@ import matplotlib.pyplot as plt
 import matplotlib.backends.backend_pdf
 import datarail.utils.plate_fcts as pltfct
 import datarail.utils.drug_treatment as drgtrt
+from sklearn import mixture
+import datarail.experimental_design.edge_fingerprint as fgprt
 
-reload(pltfct)
 
 def Plate_bias(xray, variable='cell_count', filename=None):
     xrcc = xray[variable]
@@ -17,7 +18,7 @@ def Plate_bias(xray, variable='cell_count', filename=None):
     if filename is not None:
         pdf = matplotlib.backends.backend_pdf.PdfPages(filename)
 
-    for i,b in enumerate(xrcc['barcode'].values):
+    for b in xrcc['barcode'].values:
         fig = 99
         plt.figure(fig, figsize=[10,5])
         plt.clf()
@@ -39,7 +40,7 @@ def Plate_bias(xray, variable='cell_count', filename=None):
         for i in m.column:
             p = stats.ttest_1samp(xrcc.loc[b,:,i], plate_mean).pvalue
             plt.text(i, m.loc[i]+1.2*s.loc[i], '*'*(1*(p<.05)+(p<.01)), horizontalalignment='center')
-        h.axes.axes.set_xlim([.5, xray.plate_dims[1]])
+        h.axes.axes.set_xlim([.5, xray.plate_dims[1]+.5])
         h.axes.set_xticks(range(1, xray.plate_dims[1]+1,2))
         h.axes.axes.set_ylim(himg.get_clim())
         h.set_title('Column bias')
@@ -53,7 +54,7 @@ def Plate_bias(xray, variable='cell_count', filename=None):
         for i in m.row:
             p = stats.ttest_1samp(xrcc.loc[b,i,:], plate_mean).pvalue
             plt.text(i, m.loc[i]+1.2*s.loc[i], '*'*(1*(p<.05)+(p<.01)), horizontalalignment='center')
-        h.axes.axes.set_xlim([.5, xray.plate_dims[0]])
+        h.axes.axes.set_xlim([.5, xray.plate_dims[0]+.5])
         h.axes.axes.set_ylim(himg.get_clim())
         h.axes.set_xticks(range(1, xray.plate_dims[0]+1,2))
         h.axes.set_xticklabels([chr(i) for i in
@@ -65,8 +66,8 @@ def Plate_bias(xray, variable='cell_count', filename=None):
         for i in range(1,1+xray.plate_dims[0]/2):
             v = np.append(xrcc.loc[b][np.any([xrcc.loc[b].row==i,
                                               xrcc.loc[b].row==xray.plate_dims[0]-i+1],axis=0),:].values,
-                          xrcc.loc[b][:, np.any([xrcc.loc[b].column==i,
-                                                 xrcc.loc[b].column==xray.plate_dims[1]-i+1],axis=0)].values)
+                          xrcc.loc[b][:, np.any([xrcc.loc[b].column==i+1, # shift of 1 to avoid double count corners
+                                                 xrcc.loc[b].column==xray.plate_dims[1]-i+1-1],axis=0)].values)
             m = np.append(m, v.mean())
             s = np.append(s, v.std())
             p = np.append(p, stats.ttest_1samp(v, plate_mean).pvalue)
@@ -136,3 +137,50 @@ def Negative_control_bias(df, variable='cell_count', filename=None):
     if filename is not None:
         pdf.savefig( fig )
         pdf.close()
+
+
+
+
+def read_fingerprint(xray):
+    xrcc = xray['cell_count']
+
+    fingerprint = []
+    all_pos_wells = []
+    for b in xrcc['barcode'].values:
+        v = np.append(xrcc.loc[b][np.any([xrcc.loc[b].row==1,
+                                          xrcc.loc[b].row==xray.plate_dims[0]],axis=0),:].values,
+                      xrcc.loc[b][:, np.any([xrcc.loc[b].column==2,
+                                             xrcc.loc[b].column==xray.plate_dims[1]-1],axis=0)].values)
+
+        g = mixture.GMM(n_components=2)
+        g.fit([[i] for i in v])
+        idx_pos = (g.means_[0]>g.means_[1])
+
+        # get all the edge wells and their probability of being positive
+        fingerprint_wells = []
+        for i in range(1,xray.plate_dims[0]+1):
+            fingerprint_wells.append([
+                xray['well'].loc[b,i,1].values.tostring(),
+                g.predict_proba([[xrcc.loc[b,i,1].values]])[0][np.argmin(g.means_)]])
+            fingerprint_wells.append([
+                xray['well'].loc[b,i,xray.plate_dims[1]].values.tostring(),
+                g.predict_proba([[xrcc.loc[b,i,xray.plate_dims[1]].values]])[0][np.argmin(g.means_)]])
+
+        for j in range(2,xray.plate_dims[1]):
+            fingerprint_wells.append([
+                xray['well'].loc[b,1,j].values.tostring(),
+                g.predict_proba([[xrcc.loc[b,1,j].values]])[0][np.argmin(g.means_)]])
+            fingerprint_wells.append([
+                xray['well'].loc[b,xray.plate_dims[0],j].values.tostring(),
+                g.predict_proba([[xrcc.loc[b,xray.plate_dims[0],j].values]])[0][np.argmin(g.means_)]])
+
+        # decode based on the identity of the positive wells
+        pos_wells = [w[0] for w in fingerprint_wells if w[1]>.5]
+        fingerprint.append([b, fgprt.decode_fingerprint(pos_wells, xray.plate_dims)])
+        all_pos_wells.append([b, pos_wells])
+
+    for b in fingerprint:
+        if not b[1][1]:
+            print 'Fingerprint failed for plate %s: read as %s !' % (b[0], b[1][0])
+
+    return fingerprint, all_pos_wells

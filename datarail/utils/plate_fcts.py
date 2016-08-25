@@ -33,6 +33,7 @@ def dfplate2xr(df):
     index = pd.MultiIndex.from_arrays([df.barcode, df.row, df.column])
     df.index = index
     df = df.drop(['barcode', 'column', 'row'],axis=1)
+    df = df.drop([f for f in ['Column', 'Row'] if f in df.columns], axis=1)
 
     xray =  xr.Dataset.from_dataframe(df)
 

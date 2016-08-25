@@ -6,19 +6,31 @@ import os
 import datarail.utils.plate_fcts as pltfct
 
 
-def Columbus_processing(filename, outputfile=''):
+
+def Columbus_processing(filename, fields,
+                        cell_count=None,
+                        outputfile=None):
+    """ import and clean up the output of Columbus scanner
+
+    Arguments:
+    filename -- name of the file containing the data (should be a tab-separated file)
+    fields -- list of pairs of names for data to import:
+                 column name in the original Columbus file
+                 column name in the output file
+              e.g.: fields = (('cell_count__total', 'Nuclei-Hoechst Selected - Number of Objects'),
+                              ('cell_count__dead', 'Nuclei-LDRpos - Number of Objects'))
+    cell_count -- define the arithmetic operation to get the number of viable cell if not defined
+                     directly as a field (e.g. 'cell_count__total - cell_count__dead')
+    outputfile -- name of the file to save the processed data (default = None, nothing saved)
+    """
 
     df = _Read_Columbus(filename)
 
     df = _Correct_fields(df)
 
-    df = _Define_count_fields(df,
-                        cell_count='Hoechst_pos-Hoechst_LDR_pos',
-                        addfields=(('cell_count__total', 'Hoechst_pos'),
-                                   ('corpse_count','LDR_pos_Hoechst_neg'),
-                                   ('cell_count__dead', 'Hoechst_LDR_pos')))
+    df = _Define_count_fields(df, fields, cell_count)
 
-    if len(outputfile)!=0:
+    if outputfile:
         df.to_csv(outputfile, index=False, sep='\t')
         print 'File \n\t%s \nprocessed and saved in \n\t%s' % (filename, outputfile)
 
@@ -67,43 +79,44 @@ def _Calculate_time(dfin, time0):
     return dfout
 
 def _Define_count_fields(dfin,
-                        cell_count='Hoechst_pos-Hoechst_LDR_pos',
-                        addfields=[]):
+                         fields,
+                         cell_count=None,
+                         addfields=[]):
 
+    dfout = dfin.copy()
     fs = _get_count_fields(dfin)
 
-    # get the cell count from the fields from Columbus
-    cc_f = re.split('[+-/*]', cell_count)
-    if np.any([f not in fs for f in cc_f]):
-        print 'Missing column(s): ' + \
-            ' - '.join([f for f in cc_f if f not in fs])
-        raise ValueError('Missing column in dataframe')
+    for af in fields:
+        if af[0] not in fs:
+            print 'Missing column: ' + af[0]
+            raise ValueError('Missing column in dataframe')
+        dfout = pd.concat([ dfout, pd.DataFrame(dfin[af[0]].values,
+                                                columns=[af[1]], copy=True) ],
+                          axis=1)
 
-    cc_eval = cell_count
-    for f in cc_f:
-        cc_eval = re.sub(f, 'dfin.' + f, cc_eval)
+    if cell_count:
+        if 'cell_count' in [fc[1] for fc in fields]:
+            print 'cell_count column defined twice'
+            raise ValueError('cell_count column defined twice')
 
-    # need to add '.values' in order to cover cases of arithmetic operation AND single value
-    cc = pd.DataFrame(eval(cc_eval).values, columns=['cell_count'])
-
-    for af in addfields:
-        a_f = re.split('[+-/*]', af[1])
-
-        if np.any([f not in fs for f in a_f]):
+        # get the cell count from the fields defined
+        cc_f = re.split('\s?[+-/*]\s?', cell_count)
+        if np.any([f not in [fc[1] for fc in fields] for f in cc_f]):
             print 'Missing column(s): ' + \
-                ' - '.join([f for f in cc_f if f not in fs])
+                ' - '.join([f for f in cc_f if f not in [fc[1] for fc in fields]])
             raise ValueError('Missing column in dataframe')
 
-        a_eval = af[1]
-        for f in a_f:
-            a_eval = re.sub(f, 'dfin.' + f, a_eval)
+        cc_eval = cell_count
+        for f in cc_f:
+            cc_eval = re.sub(f, 'dfout.' + f , cc_eval)
         # need to add '.values' in order to cover cases of arithmetic operation AND single value
-        cc = pd.concat([cc, pd.DataFrame(eval(a_eval).values, columns=[af[0]])],
-                       axis=1)
+        dfout = pd.concat([dfout,
+                           pd.DataFrame(eval(cc_eval).values, columns=['cell_count'])],
+                          axis=1)
 
 
-    dfout = pd.concat([dfin, cc], axis=1)
     dfout.drop(fs, 1, inplace=True)
+
 
     return dfout
 
@@ -119,4 +132,4 @@ def _get_count_fields(dfin):
         if f in numdf.columns:
             numdf.drop(f, 1, inplace=True)
 
-    return [f for f in numdf.columns if np.all(numdf[f]==np.ceil(numdf[f]))]
+    return [f for f in numdf.columns]
