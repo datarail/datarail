@@ -36,7 +36,7 @@ def get_treated_panel(design):
     return treated_panel_flat
 
 
-def plot_layout(design, filename='drugs_layout.png'):
+def plot_layout(design, filename=None):
     treatments = get_treatments(design)
     colors = plt.cm.rainbow(np.linspace(0, 1, len(treatments)))
     plate_dims = [16, 24]
@@ -61,12 +61,14 @@ def plot_layout(design, filename='drugs_layout.png'):
                list(design.coords['rows'].values))
     plt.xticks(range(plate_dims[1]),
                np.arange(1, plate_dims[1]+1))
-    plt.savefig(filename)
+    if not filename:
+        plt.show()
+    elif filename:
+        plt.savefig(filename) 
     plt.clf()
-    return plate_RGB
 
 
-def plot_drug(design, drug, filename):
+def plot_drug(design, drug, filename=None):
     drug_array = design.where(design.agents ==
                               drug).concentrations[:, :, 0].values
     drug_array[drug_array == np.nan] = 1e-5
@@ -81,8 +83,11 @@ def plot_drug(design, drug, filename):
     plt.xticks(np.arange(1, plate_dims[1]+1, 2))
     plt.gca().invert_yaxis()
     plt.title('layout of %s' % drug)
-    plt.savefig(filename)
-    plt.clf
+    if not filename:
+        plt.show()
+    elif filename:
+        plt.savefig(filename)
+    plt.clf()
 
 
     
