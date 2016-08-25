@@ -62,7 +62,7 @@ def single_condition_response(df_sensitivity, df_growth, cell_line,  agent, conc
     ''' generate values based on predefined table and selected conditions '''
 
     para = df_sensitivity[(df_sensitivity.agent==agent) & (df_sensitivity.cell_line==cell_line)]
-    xctrl = np.ceil(x0 * 2**(time/df_growth[df_growth.cell_line==cell_line]['doubling_time'].values[0]))
+    xctrl = np.ceil(x0 * 2.**(1.*time/df_growth[df_growth.cell_line==cell_line]['doubling_time'].values[0]))
 
     if len(para)==0:
         return allcounts(concentration, x0, xctrl, 1, np.inf, .01)
@@ -79,7 +79,8 @@ def multiple_responses(df_trt, df_gr, df_sens):
 
     for i in range(0,len(df_trt)):
         res = single_condition_response(df_sens, df_gr, df_trt['cell_line'][i],
-                                        df_trt['agent'][i], df_trt['concentration'][i])
+                                        df_trt['agent'][i], df_trt['concentration'][i],
+                                        df_trt['treatment_duration'][i])
         res = pd.concat([df_trt.iloc[i:(i+1),:].reset_index(drop=True), res.drop(['concentration'],axis=1)], axis=1)
 
         df_res = df_res.append(res)
@@ -88,6 +89,19 @@ def multiple_responses(df_trt, df_gr, df_sens):
 
 ######### functions to generate artefacts #############
 
+def low_cell_count_plate(df_in, barcode, strength=.9):
+    ''' plate based effect :
+    - lower the number of 'viable' cells '''
+
+    df = df_in.copy()
+    for b in barcode:
+        df.cell_count[df.barcode==b] *= strength
+
+    df.cell_count = np.ceil(df.cell_count)
+    df.cell_count__total = df.cell_count + df.cell_count__dead
+    df.frac_dead = (df.corpse_count+df.cell_count__dead)/(df.corpse_count+df.cell_count__total)
+
+    return df
 
 def add_edge_effect(df_, strength=.3):
     ''' edge effects :
@@ -113,7 +127,7 @@ def add_edge_effect(df_, strength=.3):
 
     # exponential decay, half-distance is 1.5
     Effect = strength*np.exp(-(EdgeDist-1)/1.5)
-    NewDeadCells = np.ceil(df_.cell_count*Effect);
+    NewDeadCells = np.ceil(df_.cell_count*Effect)
     df_.cell_count__dead += NewDeadCells
     df_.cell_count -= NewDeadCells
     df_.frac_dead = (df_.corpse_count+df_.cell_count__dead)/(df_.corpse_count+df_.cell_count__total)
@@ -168,7 +182,8 @@ def Columbus_fixed(df_trt, df_res):
 
         df_Columb = df_Columb.append(df_)
 
-    df_Columb.drop(['concentration', 'cell_count', 'frac_dead', 'agent', 'cell_line', 'well'], 1, inplace=True)
+    df_Columb.drop(['concentration', 'cell_count', 'frac_dead', 'agent',
+                    'cell_line', 'well', 'role'], 1, inplace=True)
     df_Columb.rename(index=str, columns={'cell_count__total': 'Hoechst_pos',
                                       'cell_count__dead': 'Hoechst_LDR_pos',
                                       'corpse_count': 'LDR_pos_Hoechst_neg'},

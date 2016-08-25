@@ -92,7 +92,7 @@ for color in colors:
 df = pd.DataFrame(zip(src_well, dest_well),
                   columns=['Source_well', 'Destination_well'])
 
-df.to_csv('pilot_randomized_mapping.csv', index=False)
+df.to_csv('OUTPUT/pilot_randomized_mapping.csv', index=False)
 
 
 def split_text(s):
@@ -124,4 +124,3 @@ plt.xlim([0, 24])
 plt.yticks([i + 0.5 for i in range(16)],
            [chr(65+i) for i in range(16)])
 plt.show()
-

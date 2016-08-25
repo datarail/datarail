@@ -42,9 +42,8 @@ def dfplate2xr(df):
 
 def axis_plate(h, plate_dims):
 
-    h.axes.axes.set_ylim([.5, plate_dims[0]])
-    h.axes.axes.set_xlim([.5, plate_dims[1]])
-    h.axes.invert_yaxis()
+    h.axes.axes.set_ylim([.5, plate_dims[0]+.5])
+    h.axes.axes.set_xlim([.5, plate_dims[1]+.5])
 
     if plate_dims[0]>10:
         h.axes.set_yticks(range(1, plate_dims[0]+1,2))
@@ -53,8 +52,9 @@ def axis_plate(h, plate_dims):
         h.axes.set_yticks(range(1,plate_dims[0]+1))
         h.axes.set_yticklabels([chr(i) for i in range(ord('A'), ord('A')+plate_dims[0])])
 
-
     if plate_dims[1]>15:
         h.axes.set_xticks(range(1,plate_dims[1]+1,2))
     else:
         h.axes.set_xticks(range(1,plate_dims[1]+1))
+
+    h.axes.invert_yaxis()
