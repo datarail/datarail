@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import re
 from datarail.import_modules.columbus_import_functions import Columbus_processing
 
 
@@ -18,7 +19,10 @@ def add_treatments(dfdata, trtfolder):
     ''' add the the data about the treatment'''
 
     trt_files = list(set(dfdata.treatment_file) - set(['-', '']))
-    trt = [pd.read_csv(trtfolder + f, sep='\t') for f in trt_files]
+    # add the extension if not present (.tsv by default)
+    trt_filenames = [f+'.tsv' if (re.search('\.\w\w\w$', f) is None) else f for f in trt_files]
+
+    trt = [pd.read_csv(trtfolder + '/' + f, sep='\t') for f in trt_filenames]
 
     dfout = pd.merge(dfdata.loc[np.any([dfdata.treatment_file == '',dfdata.treatment_file =='-'], axis=0),:],_untreated_plate(), on='well')
     for (i,tf) in enumerate(trt_files):
