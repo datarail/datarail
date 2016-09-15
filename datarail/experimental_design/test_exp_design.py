@@ -10,6 +10,11 @@ treatment_dicts = read_input(csv_file, plate_dims,
                              barcode_prefix, encode_plate=True,
                              num_replicates=3)
 
+# ---correction-----
+for dict in treatment_dicts:
+    for drug in dict.keys():
+        doses = dict[drug]['doses']
+        dict[drug]['doses'] = doses[::-1]
 
 drug_treatments = treatment_dicts[0]
 nc_treatments = treatment_dicts[1]
