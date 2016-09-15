@@ -88,3 +88,26 @@ def get_inner_untreated_wells(Design, drugs):
     cols = [str(j+1) for j in pos[1]]
     pos_wells = [i+j for i, j in zip(rows, cols)]
     return pos_wells
+
+
+def get_well_name(well_id, plate_dims):
+    """Function that maps well numerical id to name (label)
+
+    Parameter
+    ---------
+    well_id: int
+      well id on plate eg: 234
+    plate_dims: np array
+       dimensions of plate
+
+    Returns
+    -------
+    index: str
+       coordinate label of the well, eg: 'B10'
+    """
+
+    row_num, col_num = divmod(well_id, plate_dims[1])
+    row_label = chr(65 + row_num)
+    col_label = str(col_num + 1)
+    well_name = "%s%s" % (row_label, col_label)
+    return well_name
