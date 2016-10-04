@@ -109,7 +109,7 @@ def read_input(csv_file, plate_dims, barcode_prefix,
         warnings.warn(
             'Plate will have untreated inner wells')
         print 'There are %d untreated wells on the inner plate.'\
-            ' Consider alloting more wells to negative conrols' % (
+            ' Consider alloting more wells to negative controls' % (
                 inner_wells_available - total_control_wells)
 
     total_treatments = num_dr_treatments + total_control_wells
