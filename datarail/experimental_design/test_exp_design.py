@@ -1,5 +1,8 @@
 from process_assay import read_input
 from designer import make_layout
+import numpy as np
+import exporter
+
 
 csv_file = 'test_user_input2.csv'
 plate_dims = [16, 24]
@@ -10,11 +13,15 @@ treatment_dicts = read_input(csv_file, plate_dims,
                              barcode_prefix, encode_plate=True,
                              num_replicates=3)
 
+
 # ---correction-----
-for dict in treatment_dicts:
-    for drug in dict.keys():
-        doses = dict[drug]['doses']
-        dict[drug]['doses'] = doses[::-1]
+dose_range_sjb = 31.6 * 1e-4 * np.logspace(0, 4, 9)[::-1]
+dose_range = np.insert(dose_range_sjb[:-1], 0, 50)
+
+for drug in treatment_dicts[0].keys():
+    treatment_dicts[0][drug]['doses'] = dose_range
+treatment_dicts[0]['SJB2-043']['doses'] = dose_range_sjb
+
 
 drug_treatments = treatment_dicts[0]
 nc_treatments = treatment_dicts[1]
@@ -56,5 +63,9 @@ Designs = make_layout(treatment_dicts, barcode_prefix,
                       plate_dims=[16, 24], nreps=num_replicates,
                       randomize=True, biased_randomization=True)
 
+df = exporter.to_tsv(Designs)
+
 #                      combo_pairs=combo_pairs, combo_doses=combo_doses,
 #                      combo_k=combo_k)
+
+
