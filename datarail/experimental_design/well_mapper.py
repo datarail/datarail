@@ -108,6 +108,6 @@ def get_well_name(well_id, plate_dims):
 
     row_num, col_num = divmod(well_id, plate_dims[1])
     row_label = chr(65 + row_num)
-    col_label = str(col_num + 1)
-    well_name = "%s%s" % (row_label, col_label)
+    col_label = col_num + 1
+    well_name = "%s%02d" % (row_label, col_label)
     return well_name
