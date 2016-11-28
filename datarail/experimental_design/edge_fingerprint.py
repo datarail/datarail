@@ -1,7 +1,5 @@
 import numpy as np
 import datarail.utils.plate_fcts as pltfct
-#import datarail.experimental_design.well_mapper as wellmap
-#wellmap.get_well_index
 
 def _fingerprint_position(plate_dims):
 

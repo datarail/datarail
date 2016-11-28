@@ -2,23 +2,23 @@ import pandas as pd
 import numpy as np
 from collections import OrderedDict
 from itertools import groupby
-import edge_barcode
+import datarail.experimental_design.edge_fingerprint as edge_fingerprint
 import warnings
 
 
-def read_input(csv_file, plate_dims, barcode_prefix,
+def read_input(tsv_file, plate_dims, fingerprint_prefix,
                encode_plate=False, num_replicates=1):
-    """ Function takes tsv/csv file provided by user and constructs
+    """ Function takes tsv file provided by user and constructs
     dicts for all treatments, also provides error warning if well allotments
     are incorrect
 
     Parameters
     ----------
-    csv_file: csv_file
+    tsv_file: tsv_file
 
     plate_dims: list
 
-    barcode_prefix: str
+    fingerprint_prefix: str
 
     encode_plate: boolean
 
@@ -32,16 +32,16 @@ def read_input(csv_file, plate_dims, barcode_prefix,
 
     pc_treatments: dict
 
-    bc_treatments: dict
+    fprt_treatments: dict
     """
 
-    df = pd.read_csv(csv_file)
+    df = pd.read_csv(tsv_file, sep='\t')
     drugs = df.Compound_Name[df.Role == 'treatment'].tolist()
     positive_controls = df.Compound_Name[df.Role ==
                                          'positive_control'].tolist()
     negative_controls = df.Compound_Name[df.Role ==
                                          'negative_control'].tolist()
-    barcode_treatments = df.Compound_Name[df.Role == 'barcode'].tolist()
+    fingerprint_treatments = df.Compound_Name[df.Role == 'fingerprint'].tolist()
 
     drug_treatments = OrderedDict()
     for drug in drugs:
@@ -65,8 +65,11 @@ def read_input(csv_file, plate_dims, barcode_prefix,
             df['Compound_Name'] == nc].values[0]
         num_wells = df['num_wells'].ix[
             df['Compound_Name'] == nc].values[0]
-        max_dose_value, _ = split_text(max_dose)
-        nc_treatments[nc] = {'doses': [max_dose_value] * num_wells,
+        # if np.isnan(max_dose):
+        #     max_dose_value = 0
+        # else:
+        #     max_dose_value, _ = split_text(max_dose)
+        nc_treatments[nc] = {'doses': [max_dose] * num_wells,
                              'role': 'negative_control'}
     num_nc_treatments = sum(len(v['doses']) for v
                             in nc_treatments.itervalues())
@@ -89,7 +92,7 @@ def read_input(csv_file, plate_dims, barcode_prefix,
                 df['Compound_Name'] == pc].values[0]
             max_dose_value, _ = split_text(max_dose)
             # pc_name = 'pc_' + pc
-            pc_treatments[pc] = {'doses': [max_dose_value] * num_wells,
+            pc_treatments[pc] = {'doses': [float(max_dose_value)] * num_wells,
                                  'role': 'positive_control'}
         num_pc_treatments = sum(len(v['doses']) for v
                                 in pc_treatments.itervalues())
@@ -119,36 +122,36 @@ def read_input(csv_file, plate_dims, barcode_prefix,
                     total_treatments, total_inner_wells)
     assert total_treatments <= total_inner_wells, error_msg
 
+    fprt_treatments = OrderedDict()
     if encode_plate:
-        bc_treatments = OrderedDict()
         try:
-            for bc in barcode_treatments:
+            for fprt in fingerprint_treatments:
                 max_dose = df['Highest_Dose'].ix[
-                    df['Compound_Name'] == bc].values[0]
+                    df['Compound_Name'] == fprt].values[0]
                 num_wells = df['num_wells'].ix[
-                    df['Compound_Name'] == bc].values[0]
+                    df['Compound_Name'] == fprt].values[0]
                 max_dose_value, _ = split_text(max_dose)
-                # bc_name = 'bc_' + bc
-                bc_treatments[bc] = {'doses': [max_dose_value] * num_wells,
-                                     'role': 'Barcode'}
-            num_bc_treatments = sum(len(v['doses']) for v
-                                    in bc_treatments.itervalues())
+                # fprt_name = 'fprt_' + fprt
+                fprt_treatments[fprt] = {'doses': [float(max_dose_value)] * num_wells,
+                                     'role': 'Fingerprint'}
+            num_fprt_treatments = sum(len(v['doses']) for v
+                                    in fprt_treatments.itervalues())
 
-            barcodes = [barcode_prefix + chr(65+i)
+            fingerprints = [fingerprint_prefix + chr(65+i)
                         for i in range(num_replicates)]
-            num_bc_wells = [len(edge_barcode.encode_barcode(bc))
-                            for bc in barcodes]
-            max_bc_wells = max(num_bc_wells)
-            if num_bc_treatments < max_bc_wells:
+            num_fprt_wells = [len(edge_fingerprint.encode_fingerprint(fprt))
+                            for fprt in fingerprints]
+            max_fprt_wells = max(num_fprt_wells)
+            if num_fprt_treatments < max_fprt_wells:
                 warnings.warn(
-                    'Insufficent number of wells alloted for encodng barcode')
-                print "barcode requires %d wells, user has alloted %d wells"\
-                    % (max_bc_wells, num_bc_treatments)
+                    'Insufficent number of wells alloted for encodng fingerprint')
+                print "fingerprint requires %d wells, user has alloted %d wells"\
+                    % (max_fprt_wells, num_fprt_treatments)
         except NameError:
             print ""
-            warnings.warn('treatments for barcode not specified')
+            warnings.warn('treatments for fingerprint not specified')
 
-    return drug_treatments, nc_treatments, pc_treatments, bc_treatments
+    return drug_treatments, nc_treatments, pc_treatments, fprt_treatments
 
 
 def make_treatment_dataframe(treatments_dict,

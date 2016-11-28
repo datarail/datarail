@@ -68,9 +68,14 @@ def Plate_bias(xray, variable='cell_count', filename=None):
                                               xrcc.loc[b].row==xray.plate_dims[0]-i+1],axis=0),:].values,
                           xrcc.loc[b][:, np.any([xrcc.loc[b].column==i+1, # shift of 1 to avoid counting corners twice
                                                  xrcc.loc[b].column==xray.plate_dims[1]-i+1-1],axis=0)].values)
-            m = np.append(m, v.mean())
-            s = np.append(s, v.std())
-            p = np.append(p, stats.ttest_1samp(v, plate_mean).pvalue)
+            if len(v)>0:
+                m = np.append(m, v.mean())
+                s = np.append(s, v.std())
+                p = np.append(p, stats.ttest_1samp(v, plate_mean).pvalue)
+            else:
+                m = np.append(p, np.nan)
+                s = np.append(p, np.nan)
+                p = np.append(p, 1)
 
 
         h = plt.axes([.7, .7, .25, .2])

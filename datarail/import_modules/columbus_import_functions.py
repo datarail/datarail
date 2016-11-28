@@ -113,7 +113,7 @@ def _Define_count_fields(dfin,
         dfout = pd.concat([dfout,
                            pd.DataFrame(eval(cc_eval).values, columns=['cell_count'])],
                           axis=1)
-        dfout.cell_count[dfout.cell_count<0] = 0
+        dfout.loc[dfout.cell_count<0, 'cell_count'] = 0
 
 
     dfout.drop(fs, 1, inplace=True)

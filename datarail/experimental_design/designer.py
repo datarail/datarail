@@ -2,16 +2,16 @@
 import xarray as xr
 import numpy as np
 # import cPickle as pickle
-from process_assay import make_treatment_dataframe
-import edge_barcode
-import well_mapper
+from datarail.experimental_design.process_assay import make_treatment_dataframe
+import datarail.experimental_design.edge_fingerprint as edge_fingerprint
+import datarail.experimental_design.well_mapper as well_mapper
 
 
-def make_layout(treatment_dicts, barcode_prefix, encode_barcode=True,
-                plate_dims=[16, 24], nreps=1, randomize=True,
+def make_layout(treatment_dicts, fingerprint_prefix, encode_fingerprint=True,
+                plate_dims=[16, 24], num_replicates=1, randomize=True,
                 biased_randomization=True,
                 combo_pairs=[], combo_doses=[], combo_k=1,
-                Seed=50, well_volume=10, stock_conc='50uM'):
+                random_seed=50, well_volume=10, stock_conc='50uM'):
     """ construction of plate layout
 
     Parameters
@@ -20,9 +20,9 @@ def make_layout(treatment_dicts, barcode_prefix, encode_barcode=True,
           long table dataframe of drugs and corresponding doses
     args:
         default values of plate dimensions, stock concetntrations
-    barcode: str
-        barocde for plate
-    n_replicates: int
+    fingerprint: str
+        fingerprint for plate
+    num_replicates: int
         number of replicates in the experiment
     random_seed: int
         seed for random number generator
@@ -36,16 +36,16 @@ def make_layout(treatment_dicts, barcode_prefix, encode_barcode=True,
     """
     treatments_df = make_treatment_dataframe(treatment_dicts, plate_dims,
                                              combo_pairs, combo_doses)
-    treatment_df_wells = assign_well_index(treatments_df, plate_dims, nreps,
+    treatment_df_wells = assign_well_index(treatments_df, plate_dims, num_replicates,
                                            randomize, biased_randomization)
-    bc_treatments = treatment_dicts[3]
+    fprt_treatments = treatment_dicts[3]
 
-    barcodes = [barcode_prefix + chr(65+i) for i in range(nreps)]
+    fingerprints = [fingerprint_prefix + chr(65+i) for i in range(num_replicates)]
     treatment_stack, concentration_stack, role_stack = stack_plates(
-        treatment_df_wells, plate_dims, combo_k, nreps,
-        bc_treatments, barcodes, encode_barcode)
+        treatment_df_wells, plate_dims, combo_k, num_replicates,
+        fprt_treatments, fingerprints, encode_fingerprint)
     Designs = make_xr_stack(treatment_stack, concentration_stack, role_stack,
-                            plate_dims, combo_k, nreps, barcodes)
+                            plate_dims, combo_k, num_replicates, fingerprints)
     return Designs
 
 
@@ -55,15 +55,15 @@ def reassign_cntrls(Design, treatments):
     return np.all(all_conc == 0, axis=0)
 
 
-def assign_bc(bc_treatments, barcodes, rep, tr_panel, conc_panel,
+def assign_fprt(fprt_treatments, fingerprints, rep, tr_panel, conc_panel,
               role_panel, combo_k, plate_dims):
     rep_ind = rep - 1
-    bc_wells = edge_barcode.encode_barcode(barcodes[rep_ind])
+    fprt_wells = edge_fingerprint.encode_fingerprint(fingerprints[rep_ind])
     well_index = [well_mapper.get_well_index(well, plate_dims=[16, 24])
-                  for well in bc_wells]
-    conc_list, bc_list = [], []
-    for k, v in bc_treatments.iteritems():
-        bc_list += [k]*len(v['doses'])
+                  for well in fprt_wells]
+    conc_list, fprt_list = [], []
+    for k, v in fprt_treatments.iteritems():
+        fprt_list += [k]*len(v['doses'])
         conc_list += v['doses']
     n_wells = plate_dims[0] * plate_dims[1]
     tr_panel = tr_panel.reshape([1, n_wells, combo_k])
@@ -71,9 +71,9 @@ def assign_bc(bc_treatments, barcodes, rep, tr_panel, conc_panel,
     role_panel = role_panel.reshape([1, n_wells])
 
     for id, well_id in enumerate(well_index):
-        tr_panel[0, well_id, 0] = bc_list[id]
+        tr_panel[0, well_id, 0] = fprt_list[id]
         conc_panel[0, well_id, 0] = conc_list[id]
-        role_panel[0, well_id] = 'barcode'
+        role_panel[0, well_id] = 'fingerprint'
     conc_panel = conc_panel.reshape([plate_dims[0], plate_dims[1], combo_k])
     tr_panel = tr_panel.reshape([plate_dims[0], plate_dims[1], combo_k])
     role_panel = role_panel.reshape([plate_dims[0], plate_dims[1]])
@@ -394,21 +394,21 @@ def make_xr(conc_panel, tr_panel, plate_dims, combo_k):
     return design
 
 
-def stack_plates(treatment_df_wells, plate_dims, combo_k, nreps,
-                 bc_treatments, barcodes, encode_barcode=False):
+def stack_plates(treatment_df_wells, plate_dims, combo_k, num_replicates,
+                 fprt_treatments, fingerprints, encode_fingerprint=False):
     rows = plate_dims[0]
     cols = plate_dims[1]
 
-    concentration_stack = np.zeros([rows, cols, combo_k, nreps])
-    treatment_stack = np.zeros([rows, cols, combo_k, nreps], dtype='|S20')
-    role_stack = np.zeros([rows, cols, nreps], dtype='|S20')
-    for rep in range(1, nreps+1):
+    concentration_stack = np.zeros([rows, cols, combo_k, num_replicates])
+    treatment_stack = np.zeros([rows, cols, combo_k, num_replicates], dtype='|S20')
+    role_stack = np.zeros([rows, cols, num_replicates], dtype='|S20')
+    for rep in range(1, num_replicates+1):
         tr_panel, conc_panel, role_panel = make_arrays(treatment_df_wells,
                                                        plate_dims, combo_k,
                                                        rep)
-        if encode_barcode:
-            tr_panel, conc_panel, role_panel = assign_bc(
-                bc_treatments, barcodes, rep, tr_panel,
+        if encode_fingerprint:
+            tr_panel, conc_panel, role_panel = assign_fprt(
+                fprt_treatments, fingerprints, rep, tr_panel,
                 conc_panel, role_panel, combo_k, plate_dims)
             rep_ind = rep - 1
             treatment_stack[:, :, :, rep_ind] = tr_panel
@@ -419,8 +419,8 @@ def stack_plates(treatment_df_wells, plate_dims, combo_k, nreps,
 
 
 def make_xr_stack(treatment_stack, concentration_stack,
-                  role_stack, plate_dims, combo_k, nreps,
-                  barcodes):
+                  role_stack, plate_dims, combo_k, num_replicates,
+                  fingerprints):
     plate_rows = list(map(chr, range(65, 65+plate_dims[0])))
     plate_cols = range(1, plate_dims[1] + 1)
     combo_dims = ['single']
@@ -438,5 +438,5 @@ def make_xr_stack(treatment_stack, concentration_stack,
                                       'rows': plate_rows,
                                       'columns': plate_cols,
                                       'combos': combo_dims,
-                                      'plates': barcodes})
+                                      'plates': fingerprints})
     return design_stack

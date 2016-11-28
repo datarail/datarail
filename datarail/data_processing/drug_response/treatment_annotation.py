@@ -32,6 +32,10 @@ def add_treatments(dfdata, trtfolder):
         dfout = dfout.append(pd.merge(dfdata.loc[dfdata.treatment_file == tf, :],
                                       trt[i], on='well'))
 
+    if 'concentration' in dfout.columns:
+        print 'Concentrations rounded in the log domain'
+        dfout.loc[dfout.concentration>0, 'concentration'] = \
+            (10**np.round(np.log10(dfout.concentration[dfout.concentration>0]),4))
     ### error message if some wells have been dropped
     if len(dfout) != len(dfdata):
         warnings.warn('wells have been dropped, output length is different than input length', stacklevel=2)
