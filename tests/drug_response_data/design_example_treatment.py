@@ -23,28 +23,30 @@ df_trtfiles = [];
 for i in range(3):
     well, agent, concentration, role = [[] for _ in range(4)]
 
-    for ir in range(2,16):
+    cnt = 0
+    for ir in range(3,15):
         for ic in range(3,23):
             well += [chr(64+ir)+str(ic).zfill(2)]
-            if np.random.rand()<.1:
+            if cnt<20:
                 agent += ['-']
                 concentration += [0]
                 role += ['negative_control']
             else:
-                agent += ['D_' + str(np.random.randint(4)+1)]
-                concentration += [10**(-3+.5*np.random.randint(9))]
+                agent += ['D_' + str(np.mod(cnt/9,8)+1)]
+                concentration += [10**(-3+.5*np.mod(cnt,9))]
                 role += ['treatment']
+            cnt += 1
 
     df_trtfiles += [pd.DataFrame(dict({
-        'well':well,
+        'well':[well[j] for j in np.random.permutation(len(well))],
         'agent':agent,
         'concentration':concentration,
-        'role':role}))]
+        'role':role})).sort_values('well')]
 
     df_trtfiles[i].to_csv('./OUTPUT/Example1_treatment_' + str(i+1) + '.tsv', index=False, sep='\t')
 
 
-# creat the output files with cell counts
+# create the output files with cell counts
 
 df_treatments = pd.DataFrame([])
 for i  in range(0,len(df_plates)):
@@ -67,8 +69,8 @@ df_sensitivity = pd.read_csv('./INPUT/agent_response.tsv', delimiter='\t')
 df_growth = pd.read_csv('./INPUT/cell_line__growth.tsv', delimiter='\t')
 
 df_res = fct.multiple_responses(df_treatments, df_growth, df_sensitivity)
-df_bias = fct.low_cell_count_plate(fct.add_edge_effect(df_res, .1),
-                                   ['MH1_10', 'MH1_18', 'MH1_19'])
+df_bias = fct.low_cell_count_plate(fct.add_edge_effect(df_res, .07),
+                                   ['MH1_10', 'MH1_18', 'MH1_19'], .9)
 
 df_Col = fct.Columbus_fixed(df_treatments, df_bias)
 

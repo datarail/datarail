@@ -1,0 +1,34 @@
+Compound_Name	Highest_Dose	Role	num_wells
+Vehicle		negative_control	12
+D_positive	1 uM	positive_control	6
+D_fingerprint	5 uM	fingerprint	50
+D_1	10 uM	treatment	9
+D_2	10 uM	treatment	9
+D_3	10 uM	treatment	9
+D_4	10 uM	treatment	9
+D_5	10 uM	treatment	9
+D_6	10 uM	treatment	9
+D_7	10 uM	treatment	9
+D_8	10 uM	treatment	9
+D_9	10 uM	treatment	9
+D_10	10 uM	treatment	9
+D_11	10 uM	treatment	9
+D_12	10 uM	treatment	9
+D_13	10 uM	treatment	9
+D_14	10 uM	treatment	9
+D_15	10 uM	treatment	9
+D_16	10 uM	treatment	9
+D_17	10 uM	treatment	9
+D_18	10 uM	treatment	9
+D_19	10 uM	treatment	9
+D_20	10 uM	treatment	9
+D_21	10 uM	treatment	9
+D_22	10 uM	treatment	9
+D_23	10 uM	treatment	9
+D_24	10 uM	treatment	9
+D_25	10 uM	treatment	9
+D_26	10 uM	treatment	9
+D_27	10 uM	treatment	9
+D_28	10 uM	treatment	9
+D_29	10 uM	treatment	9
+D_30	10 uM	treatment	9

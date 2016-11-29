@@ -9,12 +9,12 @@ from datarail.utils.plate_fcts import *
 
 
 def cellcount(conc, max_count, EC50, Hill, min_count):
-    ''' generate cell count based on sigmoidal function (concentrations in log10 domain) '''
-    return min_count + (max_count - min_count)/(1. + ((10.**conc)/(10.**EC50))**Hill)
+    ''' generate cell count based on sigmoidal function (EC50 in log10 domain) '''
+    return min_count + (max_count - min_count)/(1. + (conc/(10.**EC50))**Hill)
 
 def deadcount(conc, max_count, EC50, Hill, min_count):
-    ''' generate dead cell count based on sigmoidal function (concentrations in log10 domain) '''
-    return max_count - (max_count - min_count)/(1. + ((10.**conc)/(10.**EC50))**Hill)
+    ''' generate dead cell count based on sigmoidal function (EC50 in log10 domain) '''
+    return max_count - (max_count - min_count)/(1. + (conc/(10.**EC50))**Hill)
 
 
 def add_count_noise(cc, coeff=0.5):
@@ -103,7 +103,7 @@ def low_cell_count_plate(df_in, barcode, strength=.9):
 
     return df
 
-def add_edge_effect(df_, strength=.3):
+def add_edge_effect(df_, strength=.15):
     ''' edge effects :
     - assume that plates have the format (2^n, 1.5*2^n)
     - need variables 'Row' and 'Column'
