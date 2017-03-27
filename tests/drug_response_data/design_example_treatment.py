@@ -69,11 +69,16 @@ df_sensitivity = pd.read_csv('./INPUT/agent_response.tsv', delimiter='\t')
 df_growth = pd.read_csv('./INPUT/cell_line__growth.tsv', delimiter='\t')
 
 df_res = fct.multiple_responses(df_treatments, df_growth, df_sensitivity)
-df_bias = fct.low_cell_count_plate(fct.add_edge_effect(df_res, .07),
-                                   ['MH1_10', 'MH1_18', 'MH1_19'], .9)
+df_bias = fct.low_cell_count_plate(df_res[(df_res.barcode != 'MH1_20')&(df_res.barcode != 'MH1_10')],
+                                   ['MH1_18', 'MH1_19'], .6).append(\
+                    fct.add_edge_effect(df_res[df_res.barcode == 'MH1_20'], .4)).append(\
+                    fct.add_edge_effect(df_res[df_res.barcode == 'MH1_10'], .35))
 
 df_Col = fct.Columbus_fixed(df_treatments, df_bias)
 
 df_res.to_csv('./OUTPUT/Example1_unbiased_results.tsv', index=False, sep='\t')
 df_bias.to_csv('./OUTPUT/Example1_biased_results.tsv', index=False, sep='\t')
 df_Col.to_csv('./OUTPUT/Example1_Columbus_output.tsv', index=False, sep='\t')
+
+df_bias.loc[:,['barcode','well','cell_count__total', 'cell_count__dead', 'corpse_count']].\
+    to_csv('./OUTPUT/Raw_results.tsv', index=False, sep='\t')

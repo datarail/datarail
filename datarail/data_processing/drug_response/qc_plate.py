@@ -118,7 +118,7 @@ def Negative_control_bias(df, variable='cell_count', filename=None):
     for ik in range(len(keyvals)):
         dkey = dctrl.loc[(dctrl.loc[:,keyvars] == keyvals.iloc[ik,:]).values.all(axis=1),:]
         dgrp = dkey.groupby('barcode')[variable]
-        barcodes = dgrp.groups.keys()
+        barcodes = sorted(dgrp.groups.keys())
         p = np.ones(len(barcodes))
         for i,b in enumerate(barcodes):
             p[i] = stats.ttest_ind(np.array(dgrp.get_group(b).values),
@@ -126,8 +126,8 @@ def Negative_control_bias(df, variable='cell_count', filename=None):
 
         h = plt.axes([.1+.04/len(keyvals)+ik*.9/len(keyvals), .2, .56/len(keyvals), .7])
 
-        m = dgrp.mean()
-        s = dgrp.std()
+        m = dgrp.mean().sort_index()
+        s = dgrp.std().sort_index()
         plt.bar(np.array(range(len(dgrp)))-.4, m)
         plt.errorbar(range(len(dgrp)), m, s, fmt='.k')
         for  i in (p<.05).nonzero()[0]:

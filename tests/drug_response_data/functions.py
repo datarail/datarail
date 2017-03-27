@@ -95,7 +95,7 @@ def low_cell_count_plate(df_in, barcode, strength=.9):
 
     df = df_in.copy()
     for b in barcode:
-        df.cell_count[df.barcode==b] *= strength
+        df.loc[df.barcode==b,'cell_count'] *= strength
 
     df.cell_count = np.ceil(df.cell_count)
     df.cell_count__total = df.cell_count + df.cell_count__dead
@@ -103,21 +103,20 @@ def low_cell_count_plate(df_in, barcode, strength=.9):
 
     return df
 
-def add_edge_effect(df_, strength=.15):
+def add_edge_effect(df_in, strength=.15):
     ''' edge effects :
     - assume that plates have the format (2^n, 1.5*2^n)
     - need variables 'Row' and 'Column'
     - change some cells from 'viable' to 'dead' '''
 
+    df_ = df_in
     added_Column = 'Column' not in df_.keys()
     if added_Column:
-        df_ = pd.concat([df_, pd.DataFrame([well_as_row_col(df_.well.iloc[i])['column'] \
-                                      for i in range(0,len(df_))], columns=['Column'])], axis=1)
+        df_ = df_.assign(Column = [well_as_row_col(df_.well.iloc[i])['column'] for i in range(0,len(df_))])
 
     added_Row = 'Row' not in df_.keys()
     if added_Row:
-        df_ = pd.concat([df_, pd.DataFrame([well_as_row_col(df_.well.iloc[i])['row'] \
-                                      for i in range(0,len(df_))], columns=['Row'])], axis=1)
+        df_ = df_.assign(Row=[well_as_row_col(df_.well.iloc[i])['row']  for i in range(0,len(df_))])
 
     Nrows = 2**(np.ceil(np.log2( max(df_.Row) )))
     Ncols = 1.5*2**(np.ceil(np.log2( max(df_.Column)/1.5 )))
