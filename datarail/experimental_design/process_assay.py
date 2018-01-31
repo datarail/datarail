@@ -451,7 +451,7 @@ def randomize_wells(df, fingerprints=['BCA2_A'],
         dfc['plate'] = [fingerprint] * len(dfc)
         remainder_wells = [w for w in wells if w not in dfc.well.tolist()]
         dfo = pd.DataFrame(list(zip(remainder_wells, [fingerprint] * len(
-            remainder_wells))), columns=['well', 'plate'])
+            remainder_wells))), columns=['well', 'randomization_scheme'])
         dfc2 = pd.concat([dfo, dfc])
         dfc2 = dfc2.sort_values(['well'])
         df_list.append(dfc2)
@@ -459,4 +459,5 @@ def randomize_wells(df, fingerprints=['BCA2_A'],
     dfr['agent'] = dfr['agent'].replace([np.nan], '')
     dfr['role'] = dfr['role'].replace([np.nan], '')
     dfr = dfr.fillna(0)
+    dfr.index = range(len(dfr))
     return dfr
