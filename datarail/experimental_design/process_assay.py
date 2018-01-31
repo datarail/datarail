@@ -82,12 +82,12 @@ def read_input(file, plate_dims, fingerprint_prefix,
     total_control_wells = num_nc_treatments
 
     if num_nc_treatments < 8:
-        print ""
+        print("")
         warnings.warn(
             'Insufficent number of wells alloted for negative controls')
-        print "Atleast 8 wells have to be assigned for negative controls,"\
-            " recommended number is 12, user has currently alloted %d wells"\
-            " for negative_controls" % num_nc_treatments
+        print("Atleast 8 wells have to be assigned for negative controls,"
+              " recommended number is 12, user has currently alloted %d wells"
+              " for negative_controls" % num_nc_treatments)
 
     pc_treatments = OrderedDict()
     try:
@@ -107,19 +107,19 @@ def read_input(file, plate_dims, fingerprint_prefix,
         pass
 
     if total_control_wells > inner_wells_available:
-        print ""
+        print("")
         warnings.warn(
             'Number of wells alloted for controls exceeds available wells')
-        print "%d wells are available for controls, user has alloted %d wells"\
-            " for negative controls and %d for positive controls" % (
-                inner_wells_available, num_nc_treatments, num_pc_treatments)
+        print("%d wells are available for controls, user has alloted %d wells"
+              " for negative controls and %d for positive controls" % (
+                inner_wells_available, num_nc_treatments, num_pc_treatments))
     elif total_control_wells < inner_wells_available:
-        print ""
+        print("")
         warnings.warn(
             'Plate will have untreated inner wells')
-        print 'There are %d untreated wells on the inner plate.'\
-            ' Consider alloting more wells to negative controls' % (
-                inner_wells_available - total_control_wells)
+        print('There are %d untreated wells on the inner plate.'
+              ' Consider alloting more wells to negative controls' % (
+                inner_wells_available - total_control_wells))
 
     total_treatments = num_dr_treatments + total_control_wells
     total_inner_wells = nwells_total - num_edge_wells
@@ -151,10 +151,10 @@ def read_input(file, plate_dims, fingerprint_prefix,
             if num_fprt_treatments < max_fprt_wells:
                 warnings.warn(
                     'Insufficent number of wells alloted for encodng fingerprint')
-                print "fingerprint requires %d wells, user has alloted %d wells"\
-                    % (max_fprt_wells, num_fprt_treatments)
+                print("fingerprint requires %d wells, user has alloted %d wells"
+                      % (max_fprt_wells, num_fprt_treatments))
         except NameError:
-            print ""
+            print("")
             warnings.warn('treatments for fingerprint not specified')
 
     return drug_treatments, nc_treatments, pc_treatments, fprt_treatments
@@ -243,7 +243,8 @@ def get_boundary_cell_count(plate_dims, exclude_outer=1):
 
 def set_dosing(num_doses, max_dose, num_replicates=1):
     dose_range = max_dose * 1e-4 * np.logspace(0, 4, num_doses)
-    dose_range = sorted(list(set(dose_range)) * num_replicates)
+    dose_range = sorted(list(set(dose_range)))[::-1]
+    # dose_range = sorted(list(set(dose_range)) * num_replicates)
     return dose_range
 
 
@@ -253,79 +254,141 @@ def exclude_treatment(df, drug, doses):
     return df2
 
 
-def construct_well_level_df(spec_file, plate_dims=[16, 24],
-                            barcode=None, exclude_outer=1):
-    df_spec = pd.read_csv(spec_file)
-    drugs, doses, role = [], [], []
-    df_tr = df_spec[df_spec.Role == 'treatment'].copy()
-    for drug in df_tr.Compound.tolist():
-        max_dose = df_tr[df_tr.Compound == drug]['Max_dose_(uM)'].values[0]
-        num_doses = df_tr[df_tr.Compound == drug]['Num_doses'].values[0]
-        num_replicates = df_tr[df_tr.Compound == drug][
+def construct_well_level_df(input_file, plate_dims=[16, 24],
+                            exclude_outer=1):
+    """ Generates long table of doses and drugs mapped to wells.
+
+    Input file should be broad description of the planned experimental design
+    and should contain the following columns
+    - 'agent' column listing the names of drugs
+       including positve and negative controls
+    - 'max_dose__um' column listing the highest dose for each agent
+    - 'num_doses' column listing the number of doses for each agent
+    - 'role' column listing the intended role for each agent
+       'treatment', positive_control', 'negative_control', or 'fingerprint'
+    - 'num_replicates' column listing number of times a drug's
+       dosing scheme is replicated on the same plate
+
+    Parameters:
+    ----------
+    input_file: str
+            csv or tsv file name of the input file
+    plate_dims: list
+            dimensions of the plate
+    exlude_outer: int
+            number of outer wells to exlude; defaut set to 1
+    Returns
+    -------
+    df_well: pandas dataframe
+           dataframe mapping wells to drug and dose response
+    """
+    df_spec = pd.read_csv(input_file)
+    drugs, doses, role, identifier = [], [], [], []
+    df_tr = df_spec[df_spec.role == 'treatment'].copy()
+    for drug in df_tr.agent.tolist():
+        max_dose = df_tr[df_tr.agent == drug]['max_dose__um'].values[0]
+        num_doses = df_tr[df_tr.agent == drug]['num_doses'].values[0]
+        num_replicates = df_tr[df_tr.agent == drug][
             'num_replicates'].values[0]
-        dose_range = set_dosing(9, max_dose, num_replicates)
+        dose_range = set_dosing(num_doses, max_dose, num_replicates)
         doses += dose_range
         drugs += [drug] * len(dose_range)
         role += ['treatment'] * len(dose_range)
-    if 'positive_control' in df_spec.Role.unique():
-        dfp = df_spec[df_spec.Role == 'positive_control'].copy()
-        for drug in dfp.Compound.tolist():
-            max_dose = dfp[dfp.Compound == drug]['Max_dose_(uM)'].values[0]
-            num_replicates = dfp[dfp.Compound == drug][
-                'num_replicates'].values[0]
+        identifier += ["%s_%d" % (drug, num) for num in range(len(dose_range))]
+    if 'positive_control' in df_spec.role.unique():
+        dfp = df_spec[df_spec.role == 'positive_control'].copy()
+        for drug in dfp.agent.tolist():
+            max_dose = dfp[dfp.agent == drug]['max_dose__um'].values[0]
+            num_replicates = int(dfp[dfp.agent == drug][
+                'num_replicates'].values[0])
             doses += [max_dose] * num_replicates
             drugs += [drug] * num_replicates
             role += ['positive_control'] * num_replicates
+            print(drug)
+            identifier += ["%s_%d" % (drug, num)
+                           for num in range(num_replicates)]
     else:
         warnings.warn(
             'Experimental design does not have positive_controls')
     num_outer_wells = get_boundary_cell_count(plate_dims, exclude_outer)
     num_available_wells = (plate_dims[0] * plate_dims[1]) - num_outer_wells
     num_treatment_wells = len(doses)
+    print(num_available_wells, num_treatment_wells)
     if num_available_wells < num_treatment_wells:
         warnings.warn('Number of treatment wells required (%d)'
                       'exceed available wells (%d)' % (
                          num_treatment_wells, num_available_wells))
-    df_well = pd.DataFrame(zip(drugs, doses, role),
-                           columns=['agent', 'concentration', 'role'])
+    df_well = pd.DataFrame(list(zip(drugs, doses, role, identifier)),
+                           columns=['agent', 'concentration',
+                                    'role', 'identifier'])
     return df_well
 
 
 def add_dmso_control(df, plate_dims=[16, 24], exclude_outer=1):
     num_treatment_wells = len(df)
     num_outer_wells = get_boundary_cell_count(plate_dims, exclude_outer)
-    num_available_wells = (plate_dims[0] * plate_dims[1]) - num_outer_wells 
+    num_available_wells = (plate_dims[0] * plate_dims[1]) - num_outer_wells
     num_nc_wells = num_available_wells - num_treatment_wells
     if num_nc_wells < 8:
-        print ""
+        print("")
         warnings.warn(
             'Insufficent number of wells alloted for negative controls')
-        print "Atleast 8 wells have to be assigned for negative controls,"\
-            " recommended number is 12, user has currently alloted %d wells"\
-            " for negative_controls" % num_nc_wells
+        print("Atleast 8 wells have to be assigned for negative controls,"
+              " recommended number is 12, user has currently alloted %d wells"
+              " for negative_controls" % num_nc_wells)
     role = df.role.tolist()
     doses = df.concentration.tolist()
     drugs = df.agent.tolist()
+    identifiers = df.identifier.tolist()
     role += ['negative_control'] * num_nc_wells
     doses += [np.nan] * num_nc_wells
     drugs += ['DMSO'] * num_nc_wells
-    df_well = pd.DataFrame(zip(drugs, doses, role),
-                           columns=['agent', 'concentration', 'role'])
+    identifiers += ['DMSO'] * num_nc_wells
+    df_well = pd.DataFrame(list(zip(drugs, doses, role, identifiers)),
+                           columns=['agent', 'concentration', 'role',
+                                    'identifier'])
     return df_well
 
 
-
 def assign_fingerprint_wells(fingerprint, treatment, dose):
+    """ Returns a set of wells along the edge that serve as barcode for
+    the plate based on the fingerprint word
+    Parameters
+    ----------
+    fingerprint: str
+    treatment: str
+        the drug used to treat fingerprint wells
+    dose: float
+        the dose of drug treatment
+    Returns:
+    -------
+    df: pandas dataframe
+       table mapping wells encoding the fingerprint to treatment
+    """
     fingerprint_wells = edge_fingerprint.encode_fingerprint(fingerprint)
     treatment_list = [treatment] * len(fingerprint_wells)
     dose_list = [dose] * len(fingerprint_wells)
     role = ['fingerprint'] * len(fingerprint_wells)
-    df = pd.DataFrame(zip(fingerprint_wells, treatment_list, dose_list, role),
-                      columns=['well', 'agent', 'concentration', 'role'])
+    identifier = ["%s_%d" % (treatment, d)
+                  for d in range(len(fingerprint_wells))]
+    df = pd.DataFrame(list(zip(fingerprint_wells, treatment_list,
+                               dose_list, role, identifier)),
+                      columns=['well', 'agent', 'concentration',
+                               'role', 'identifier'])
     return df
 
 
 def define_treatment_wells(exclude_outer=1):
+    """ defines set of inner wells to be used for treatments
+    Parameter:
+    ---------
+    exclude_outer: int
+       defines outer well columns and rows to to exclude
+    Returns:
+    -------
+    tr_wells, list(set(exclude_wells)): tuple of lists
+       lists of treatment wells and outer wells
+    """
     cols = ["%02d" % s for s in range(1, 25)]
     rows = [chr(65+n) for n in range(16)]
     wells = []
@@ -344,7 +407,25 @@ def define_treatment_wells(exclude_outer=1):
     return tr_wells, list(set(exclude_wells))
 
 
-def randomize_wells(df, fingerprints=['BCA2_A']):
+def randomize_wells(df, fingerprints=['BCA2_A'],
+                    fingerprint_drug='Staurosporine',
+                    fingerprint_dose=1):
+    """ Returns dataframe with randomized wells for all plate replicates
+    Parameters:
+    -----------
+    df: pandas dataframe
+        ordered wells mapped to drug and dose for each master plate
+    fingerprints: list of str
+        list of plate identifiers (barcode) for all plate replicates
+    fingerprint_drug: str
+        drug used for treating fingerprint wells
+    fingerprint_dose: int
+       dose of drug used for fingerprint wells treatment
+    Returns:
+    --------
+    dfr: pandas dataframe
+       drug and dose mapped to randomized wells
+    """
     tr_wells, _ = define_treatment_wells(exclude_outer=1)
     df['well'] = tr_wells
     ordered_wells = df.well.tolist()
@@ -362,15 +443,17 @@ def randomize_wells(df, fingerprints=['BCA2_A']):
                                             replace=False)
         df['well'] = randomized_wells
         df.index = df['well']
-        df_fp = assign_fingerprint_wells(fingerprint, 'Staurosporine', 1)
+        df_fp = assign_fingerprint_wells(fingerprint,
+                                         fingerprint_drug,
+                                         fingerprint_dose)
         df_fp.index = df_fp['well']
         dfc = pd.concat([df_fp, df])
         dfc['plate'] = [fingerprint] * len(dfc)
         remainder_wells = [w for w in wells if w not in dfc.well.tolist()]
-        dfo = pd.DataFrame(zip(remainder_wells, [fingerprint] * len(
-            remainder_wells)), columns=['well', 'plate'])
+        dfo = pd.DataFrame(list(zip(remainder_wells, [fingerprint] * len(
+            remainder_wells))), columns=['well', 'plate'])
         dfc2 = pd.concat([dfo, dfc])
-        dfc2 = dfc2.sort(['well'])
+        dfc2 = dfc2.sort_values(['well'])
         df_list.append(dfc2)
     dfr = pd.concat(df_list)
     dfr['agent'] = dfr['agent'].replace([np.nan], '')
