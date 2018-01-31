@@ -81,7 +81,7 @@ def decode_fingerprint(pos_wells, plate_dims=[16,24]):
 
     chksum_valid = all([ bin_val[-1][i] == chksum[i] for i in range(0,len(chksum)) ])
     if not chksum_valid:
-        print 'Error with check sum'
+        print('Error with check sum')
 
     fingerprint = ''.join([ chr(int(b,2)+32) for b in bin_val[:-1] ])
 
