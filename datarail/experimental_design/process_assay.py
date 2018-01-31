@@ -304,7 +304,6 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
             doses += [max_dose] * num_replicates
             drugs += [drug] * num_replicates
             role += ['positive_control'] * num_replicates
-            print(drug)
             identifier += ["%s_%d" % (drug, num)
                            for num in range(num_replicates)]
     else:
@@ -313,7 +312,6 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
     num_outer_wells = get_boundary_cell_count(plate_dims, exclude_outer)
     num_available_wells = (plate_dims[0] * plate_dims[1]) - num_outer_wells
     num_treatment_wells = len(doses)
-    print(num_available_wells, num_treatment_wells)
     if num_available_wells < num_treatment_wells:
         warnings.warn('Number of treatment wells required (%d)'
                       'exceed available wells (%d)' % (
@@ -451,7 +449,7 @@ def randomize_wells(df, fingerprints=['BCA2_A'],
         dfc['plate'] = [fingerprint] * len(dfc)
         remainder_wells = [w for w in wells if w not in dfc.well.tolist()]
         dfo = pd.DataFrame(list(zip(remainder_wells, [fingerprint] * len(
-            remainder_wells))), columns=['well', 'randomization_scheme'])
+            remainder_wells))), columns=['well', 'plate'])
         dfc2 = pd.concat([dfo, dfc])
         dfc2 = dfc2.sort_values(['well'])
         df_list.append(dfc2)
