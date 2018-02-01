@@ -241,10 +241,13 @@ def get_boundary_cell_count(plate_dims, exclude_outer=1):
     return boundary_cell_count
 
 
-def set_dosing(num_doses, max_dose, num_replicates=1):
-    dose_range = max_dose * 1e-4 * np.logspace(0, 4, num_doses)
+def set_dosing(max_dose, num_replicates=1):
+    dose_range = max_dose * 1e-4 * np.logspace(0, 4, 9)
     dose_range = sorted(list(set(dose_range)))[::-1]
-    # dose_range = sorted(list(set(dose_range)) * num_replicates)
+    if num_replicates > 1:
+        dr = list(set(dose_range))
+        for i in range(1, num_replicates):
+            dose_range = dose_range.extend(dr)
     return dose_range
 
 
@@ -268,6 +271,7 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
        'treatment', positive_control', 'negative_control', or 'fingerprint'
     - 'num_replicates' column listing number of times a drug's
        dosing scheme is replicated on the same plate
+    - 'exlcude_doses' column listing doses to be excluded for a given drug
 
     Parameters:
     ----------
@@ -283,6 +287,9 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
            dataframe mapping wells to drug and dose response
     """
     df_spec = pd.read_csv(input_file)
+    df_spec = df_spec.fillna('')
+    if 'exclude_doses' not in df_spec.columns.tolist():
+        df_spec['exclude_doses'] = ['']*len(df_spec)
     drugs, doses, role, identifier = [], [], [], []
     df_tr = df_spec[df_spec.role == 'treatment'].copy()
     for drug in df_tr.agent.tolist():
@@ -290,7 +297,14 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
         num_doses = df_tr[df_tr.agent == drug]['num_doses'].values[0]
         num_replicates = df_tr[df_tr.agent == drug][
             'num_replicates'].values[0]
-        dose_range = set_dosing(num_doses, max_dose, num_replicates)
+        exclude_doses = df_tr[df_tr.agent == drug][
+            'exclude_doses'].values[0]
+        dose_range = set_dosing(max_dose, num_replicates)
+        if exclude_doses == '':
+            dose_range = dose_range[-num_doses:]
+        else:
+            exclude_doses = [float(s) for s in exclude_doses.split(',')]
+            dose_range = [d for d in dose_range if d not in exclude_doses]
         doses += dose_range
         drugs += [drug] * len(dose_range)
         role += ['treatment'] * len(dose_range)
