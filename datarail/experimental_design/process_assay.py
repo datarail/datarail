@@ -336,7 +336,8 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
     return df_well
 
 
-def add_dmso_control(df, plate_dims=[16, 24], exclude_outer=1):
+def add_negative_control(df, control_name='DMSO',
+                         plate_dims=[16, 24], exclude_outer=1):
     num_treatment_wells = len(df)
     num_outer_wells = get_boundary_cell_count(plate_dims, exclude_outer)
     num_available_wells = (plate_dims[0] * plate_dims[1]) - num_outer_wells
@@ -354,8 +355,8 @@ def add_dmso_control(df, plate_dims=[16, 24], exclude_outer=1):
     identifiers = df.identifier.tolist()
     role += ['negative_control'] * num_nc_wells
     doses += [np.nan] * num_nc_wells
-    drugs += ['DMSO'] * num_nc_wells
-    identifiers += ['DMSO'] * num_nc_wells
+    drugs += [control_name] * num_nc_wells
+    identifiers += [control_name] * num_nc_wells
     df_well = pd.DataFrame(list(zip(drugs, doses, role, identifiers)),
                            columns=['agent', 'concentration', 'role',
                                     'identifier'])
@@ -419,9 +420,8 @@ def define_treatment_wells(exclude_outer=1):
     return tr_wells, list(set(exclude_wells))
 
 
-def randomize_wells(df, fingerprints=['BCA2_A'],
-                    fingerprint_drug='Staurosporine',
-                    fingerprint_dose=1):
+def randomize_wells(df, plate_names=['BCA2_A'],
+                    fingerprint_drug=None, fingerprint_dose=1):
     """ Returns dataframe with randomized wells for all plate replicates
     Parameters:
     -----------
@@ -448,21 +448,24 @@ def randomize_wells(df, fingerprints=['BCA2_A'],
         for col in cols:
             wells.append("%s%s" % (row, col))
     df_list = []
-    for rep_num, fingerprint in enumerate(fingerprints):
+    for rep_num, plate in enumerate(plate_names):
         np.random.seed(rep_num+1)
         randomized_wells = np.random.choice(ordered_wells,
                                             size=len(ordered_wells),
                                             replace=False)
         df['well'] = randomized_wells
         df.index = df['well']
-        df_fp = assign_fingerprint_wells(fingerprint,
-                                         fingerprint_drug,
-                                         fingerprint_dose)
-        df_fp.index = df_fp['well']
-        dfc = pd.concat([df_fp, df])
-        dfc['plate'] = [fingerprint] * len(dfc)
+        if fingerprint_drug:
+            df_fp = assign_fingerprint_wells(plate,
+                                             fingerprint_drug,
+                                             fingerprint_dose)
+            df_fp.index = df_fp['well']
+            dfc = pd.concat([df_fp, df])
+        else:
+            dfc = df.copy()
+        dfc['plate'] = [plate] * len(dfc)
         remainder_wells = [w for w in wells if w not in dfc.well.tolist()]
-        dfo = pd.DataFrame(list(zip(remainder_wells, [fingerprint] * len(
+        dfo = pd.DataFrame(list(zip(remainder_wells, [plate] * len(
             remainder_wells))), columns=['well', 'plate'])
         dfc2 = pd.concat([dfo, dfc])
         dfc2 = dfc2.sort_values(['well'])
