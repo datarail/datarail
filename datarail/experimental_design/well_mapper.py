@@ -23,7 +23,7 @@ def get_well_positions(Designs, drug, concentration):
     try:
         arr = Designs[drug].values
     except KeyError:
-        print "queried drug not in plate"
+        print("queried drug not in plate")
     ind = np.where(arr == concentration)
     wells = []
     if len(ind[0]) > 0:
