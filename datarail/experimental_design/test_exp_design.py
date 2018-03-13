@@ -38,25 +38,25 @@ bc_treatments = treatment_dicts[3]
 # for drug in combo_drugs:
 #     combo_doses[drug] = concentrations[4:6]
 
-print "\n Report of the experimental assay"
-print "-----------------------------------\n"
-print "This experiment assays %d drugs making up a total"\
-    " of %d treatment conditions\n" % (len(drug_treatments.keys()),
+print("\n Report of the experimental assay")
+print("-----------------------------------\n")
+print("This experiment assays %d drugs making up a total"
+      " of %d treatment conditions\n" % (len(drug_treatments.keys()),
                                        sum(len(v) for v
-                                           in drug_treatments.itervalues()))
+                                           in drug_treatments.itervalues())))
 
 
-print "This experiment has %d negative control%s\n" % (
+print("This experiment has %d negative control%s\n" % (
     len(nc_treatments.keys()), [p[0] if len(nc_treatments.keys()) ==
-                                1 else p[1] for p in [('', 's')]][0])
+                                1 else p[1] for p in [('', 's')]][0]))
 
-print "This experiment has %d positive control%s\n" % (
+print("This experiment has %d positive control%s\n" % (
     len(pc_treatments.keys()), [p[0] if len(pc_treatments.keys()) ==
-                                1 else p[1] for p in [('', 's')]][0])
+                                1 else p[1] for p in [('', 's')]][0]))
 
-print "This experiment has %d compound%s used for encoding the barcode\n" % (
+print("This experiment has %d compound%s used for encoding the barcode\n" % (
     len(bc_treatments.keys()), [p[0] if len(bc_treatments.keys()) ==
-                                1 else p[1] for p in [('', 's')]][0])
+                                1 else p[1] for p in [('', 's')]][0]))
 
 Designs = make_layout(treatment_dicts, barcode_prefix,
                       encode_barcode=True,
