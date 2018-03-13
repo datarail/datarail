@@ -2,224 +2,9 @@ import pandas as pd
 import numpy as np
 from collections import OrderedDict
 from itertools import groupby
+from itertools import product
 import datarail.experimental_design.edge_fingerprint as edge_fingerprint
 import warnings
-
-
-def read_input(file, plate_dims, fingerprint_prefix,
-               encode_plate=False, num_replicates=1):
-    """ Function takes tsv file provided by user and constructs
-    dicts for all treatments, also provides error warning if well allotments
-    are incorrect
-
-    Parameters
-    ----------
-    tsv_file: tsv_file
-
-    plate_dims: list
-
-    fingerprint_prefix: str
-
-    encode_plate: boolean
-
-    num_replicates: int
-
-    Returns
-    -------
-    drug_treatments: dict
-
-    nc_treatments: dict
-
-    pc_treatments: dict
-
-    fprt_treatments: dict
-    """
-
-    if file.endswith('.csv'):
-        df = pd.read_csv(file)
-    elif file.endswith('.tsv'):
-        df = pd.read_table(file)
-    drugs = df.Compound_Name[df.Role == 'treatment'].tolist()
-    positive_controls = df.Compound_Name[df.Role ==
-                                         'positive_control'].tolist()
-    negative_controls = df.Compound_Name[df.Role ==
-                                         'negative_control'].tolist()
-    fingerprint_treatments = df.Compound_Name[
-        df.Role == 'fingerprint'].tolist()
-
-    drug_treatments = OrderedDict()
-    for drug in drugs:
-        max_dose = df['Highest_Dose'].ix[
-            df['Compound_Name'] == drug].values[0]
-        num_doses = df['num_wells'].ix[
-            df['Compound_Name'] == drug].values[0]
-        max_dose_value, _ = split_text(max_dose)
-        conc = float(max_dose_value) * 1e-4 * np.logspace(0, 4, num_doses)
-        drug_treatments[drug] = {'doses': conc, 'role': 'treatment'}
-
-    nwells_total = plate_dims[0] * plate_dims[1]
-    num_dr_treatments = sum(len(v['doses']) for v
-                            in drug_treatments.itervalues())
-    num_edge_wells = get_boundary_cell_count(plate_dims)
-    inner_wells_available = nwells_total - num_dr_treatments - num_edge_wells
-
-    nc_treatments = OrderedDict()
-    for nc in negative_controls:
-        max_dose = df['Highest_Dose'].ix[
-            df['Compound_Name'] == nc].values[0]
-        num_wells = df['num_wells'].ix[
-            df['Compound_Name'] == nc].values[0]
-        try:
-            max_dose_value, _ = split_text(max_dose)
-        except ValueError:
-            max_dose_value = 0
-        except TypeError:
-            max_dose_value = 0
-        nc_treatments[nc] = {'doses': [max_dose] * num_wells,
-                             'role': 'negative_control'}
-    num_nc_treatments = sum(len(v['doses']) for v
-                            in nc_treatments.itervalues())
-    total_control_wells = num_nc_treatments
-
-    if num_nc_treatments < 8:
-        print("")
-        warnings.warn(
-            'Insufficent number of wells alloted for negative controls')
-        print("Atleast 8 wells have to be assigned for negative controls,"
-              " recommended number is 12, user has currently alloted %d wells"
-              " for negative_controls" % num_nc_treatments)
-
-    pc_treatments = OrderedDict()
-    try:
-        for pc in positive_controls:
-            max_dose = df['Highest_Dose'].ix[
-                df['Compound_Name'] == pc].values[0]
-            num_wells = df['num_wells'].ix[
-                df['Compound_Name'] == pc].values[0]
-            max_dose_value, _ = split_text(max_dose)
-            # pc_name = 'pc_' + pc
-            pc_treatments[pc] = {'doses': [float(max_dose_value)] * num_wells,
-                                 'role': 'positive_control'}
-        num_pc_treatments = sum(len(v['doses']) for v
-                                in pc_treatments.itervalues())
-        total_control_wells += num_pc_treatments
-    except NameError:
-        pass
-
-    if total_control_wells > inner_wells_available:
-        print("")
-        warnings.warn(
-            'Number of wells alloted for controls exceeds available wells')
-        print("%d wells are available for controls, user has alloted %d wells"
-              " for negative controls and %d for positive controls" % (
-                inner_wells_available, num_nc_treatments, num_pc_treatments))
-    elif total_control_wells < inner_wells_available:
-        print("")
-        warnings.warn(
-            'Plate will have untreated inner wells')
-        print('There are %d untreated wells on the inner plate.'
-              ' Consider alloting more wells to negative controls' % (
-                inner_wells_available - total_control_wells))
-
-    total_treatments = num_dr_treatments + total_control_wells
-    total_inner_wells = nwells_total - num_edge_wells
-    error_msg = "total number of treatments for drugs and controls (%d) "\
-                "exceed number of inner wells (%d)" % (
-                    total_treatments, total_inner_wells)
-    assert total_treatments <= total_inner_wells, error_msg
-
-    fprt_treatments = OrderedDict()
-    if encode_plate:
-        try:
-            for fprt in fingerprint_treatments:
-                max_dose = df['Highest_Dose'].ix[
-                    df['Compound_Name'] == fprt].values[0]
-                num_wells = df['num_wells'].ix[
-                    df['Compound_Name'] == fprt].values[0]
-                max_dose_value, _ = split_text(max_dose)
-                # fprt_name = 'fprt_' + fprt
-                fprt_treatments[fprt] = {'doses': [float(max_dose_value)] * num_wells,
-                                     'role': 'Fingerprint'}
-            num_fprt_treatments = sum(len(v['doses']) for v
-                                    in fprt_treatments.itervalues())
-
-            fingerprints = [fingerprint_prefix + chr(65+i)
-                        for i in range(num_replicates)]
-            num_fprt_wells = [len(edge_fingerprint.encode_fingerprint(fprt))
-                            for fprt in fingerprints]
-            max_fprt_wells = max(num_fprt_wells)
-            if num_fprt_treatments < max_fprt_wells:
-                warnings.warn(
-                    'Insufficent number of wells alloted for encodng fingerprint')
-                print("fingerprint requires %d wells, user has alloted %d wells"
-                      % (max_fprt_wells, num_fprt_treatments))
-        except NameError:
-            print("")
-            warnings.warn('treatments for fingerprint not specified')
-
-    return drug_treatments, nc_treatments, pc_treatments, fprt_treatments
-
-
-def make_treatment_dataframe(treatments_dict,
-                             plate_dims, combo_pairs=[], combo_doses=[]):
-    """ Function that returns a long table Dataframe for
-    drug treatments with n_columns  = len(drugs) and n_rows = n_wells
-
-    Parameters
-    ----------
-    drug_treatment_dict: dict
-             dictionary of drugs & negative_controls(nc) as keys
-             and the corresponding doses as values
-    args:
-       default parameters for plate_dims, stock_concentration
-    combo_pairs: list of tuples
-              list of drug combinations to be used in the experiment
-    combo_doses: dict
-             dictionary of drugs as keys and the corresponding doses used in
-             combination treatment
-
-    Returns
-    -------
-    treatment_df: pandas dataframe
-             long table dataframe where columns are drugs/nc and rows are wells
-    """
-    drug_treatment_dict = treatments_dict[0]
-    nc_treatments_dict = treatments_dict[1]
-    pc_treatments_dict = treatments_dict[2]
-    n_wells = np.dot(plate_dims[0], plate_dims[1])
-    d1 = drug_treatment_dict.copy()
-    d1.update(nc_treatments_dict)
-    if pc_treatments_dict:
-        d1.update(pc_treatments_dict)
-    total_treatments = len(d1.keys())
-    all_treatments = np.zeros([total_treatments, n_wells])
-    count = 0
-    tr_numwells = {comp: i for i, comp in enumerate(d1.keys())}
-    role = []
-    for tr in d1.keys():
-        n_treatments = len(d1[tr]['doses'])
-        all_treatments[tr_numwells[tr],
-                       count:count+n_treatments] = d1[tr]['doses']
-        count += n_treatments
-        role += [d1[tr]['role']] * n_treatments
-    for pair in combo_pairs:
-        n_treatments = len(combo_doses[pair[1]])
-        for i in range(len(combo_doses[pair[0]])):
-            all_treatments[tr_numwells[pair[0]],
-                           count:count+n_treatments] = combo_doses[pair[0]][i]
-            all_treatments[tr_numwells[pair[1]],
-                           count:count+n_treatments] = combo_doses[pair[1]]
-            count += n_treatments
-    tr_df = pd.DataFrame(all_treatments.T,
-                         columns=d1.keys())
-    tr_df = tr_df.loc[(tr_df != 0).any(axis=1)]
-    tr_df.loc[:, 'Role'] = role
-    return tr_df
-
-
-def split_text(s):
-    for k, g in groupby(s, str.isalpha):
-        yield ''.join(list(g))
 
 
 def get_boundary_cell_count(plate_dims, exclude_outer=1):
@@ -241,14 +26,65 @@ def get_boundary_cell_count(plate_dims, exclude_outer=1):
     return boundary_cell_count
 
 
-def set_dosing(max_dose, num_replicates=1):
+def set_dosing(max_dose, num_doses, num_replicates=1):
+    """ returns list of doses (micromolar) at half log intervals 
+    Parameters
+    ----------
+    max_dose: int
+        highest dose in the dose range
+    num_doses: int
+        number of doses in the dose range. Maximum is set to 9. 
+        If num doses < 9, then doses will be removed starting from lowest moving to higher doses.
+    num_replicates: int
+        number of times the dose range is replicated on the plate
+    
+    Returns:
+    -------
+    dose_range: list of floats
+    """
     dose_range = max_dose * 1e-4 * np.logspace(0, 4, 9)
+    dose_range = [round(s, 4) for s in dose_range]
     dose_range = sorted(list(set(dose_range)))[::-1]
+    dose_range = dose_range[:num_doses]
     if num_replicates > 1:
         dr = list(set(dose_range))
         for i in range(1, num_replicates):
-            dose_range = dose_range.extend(dr)
+            dose_range.extend(dr)
     return dose_range
+
+
+def set_combo_dosing(max_doses, num_doses, eq=False, num_replicates=1):
+    """ returns combination of doses  for 2 or more agents 
+    Parameters
+    ----------
+    max_doses: list of int
+        highest doses in the dose range for each agent
+    num_doses: list of int
+        number of doses in the dose range for each agent. Maximum is set to 9. 
+        If num doses < 9, then doses will be removed starting from lowest moving to higher doses.
+    num_replicates: list of int
+        list of number of times the dose range is replicated on the plate for each agent
+    
+    Returns:
+    -------
+    dose_range: list of tuples
+        each tuple corresponds to one combination of doses for 2 or more agents
+    """
+    dose_lists = []
+    for md, nd in zip(max_doses, num_doses):
+        dose_range = md * 1e-4 * np.logspace(0, 4, 9)
+        dose_range = sorted(list(set(dose_range)))[::-1]
+        dose_range = [round(s, 4) for s in dose_range]
+        dose_range = dose_range[:nd]
+        dose_lists.append(dose_range)        
+    combo_doses = list(product(*dose_lists))
+    if num_replicates > 1:
+        cd = list(set(combo_doses))
+        for i in range(1, num_replicates):
+            combo_doses.extend(cd)
+    if eq:
+        combo_doses = [c for c in combo_doses if len(set(c)) == 1]
+    return combo_doses    
 
 
 def exclude_treatment(df, drug, doses):
@@ -271,14 +107,14 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
        'treatment', positive_control', 'negative_control', or 'fingerprint'
     - 'num_replicates' column listing number of times a drug's
        dosing scheme is replicated on the same plate
-    - 'exlcude_doses' column listing doses to be excluded for a given drug
+    - 'exclude_doses' column (OPTIOINAL) listing doses to be excluded for a given drug
 
     Parameters:
     ----------
     input_file: str
             csv or tsv file name of the input file
     plate_dims: list
-            dimensions of the plate
+            dimensions of the physical plate
     exlude_outer: int
             number of outer wells to exlude; defaut set to 1
     Returns
@@ -290,21 +126,35 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
     df_spec = df_spec.fillna('')
     if 'exclude_doses' not in df_spec.columns.tolist():
         df_spec['exclude_doses'] = ['']*len(df_spec)
+    df_spec['exclude_doses'] = df_spec['exclude_doses'].fillna('')
     drugs, doses, role, identifier = [], [], [], []
     df_tr = df_spec[df_spec.role == 'treatment'].copy()
     for drug in df_tr.agent.tolist():
         max_dose = df_tr[df_tr.agent == drug]['max_dose__um'].values[0]
+        max_dose = str(max_dose).split(',')
+        max_dose = [float(mx) for mx in max_dose]
         num_doses = df_tr[df_tr.agent == drug]['num_doses'].values[0]
+        num_doses = str(num_doses).split(',')
+        num_doses = [int(nd) for nd in num_doses]
         num_replicates = df_tr[df_tr.agent == drug][
             'num_replicates'].values[0]
+        print(num_replicates)
         exclude_doses = df_tr[df_tr.agent == drug][
             'exclude_doses'].values[0]
-        dose_range = set_dosing(max_dose, num_replicates)
-        if exclude_doses == '':
-            dose_range = dose_range[-num_doses:]
+        if len(max_dose) == 1:
+            max_dose = max_dose[0]
+            num_doses = num_doses[0]
+            dose_range = set_dosing(max_dose, num_doses, num_replicates)
+            #if exclude_doses == '':
+            #    dose_range = dose_range[:num_doses]
+            #else:
+            #    exclude_doses = [float(s) for s in exclude_doses.split(',')]
+            #    dose_range = [d for d in dose_range if d not in exclude_doses]
         else:
-            exclude_doses = [float(s) for s in exclude_doses.split(',')]
-            dose_range = [d for d in dose_range if d not in exclude_doses]
+            eqm = df_tr[df_tr.agent == drug]['equivalent'].values[0]
+            dose_range = set_combo_dosing(max_dose, num_doses,
+                                          eq=bool(eqm),
+                                          num_replicates=num_replicates)
         doses += dose_range
         drugs += [drug] * len(dose_range)
         role += ['treatment'] * len(dose_range)
@@ -338,6 +188,23 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
 
 def add_negative_control(df, control_name='DMSO',
                          plate_dims=[16, 24], exclude_outer=1):
+    """ Assigns negative control agent to untreated wells
+    Parameter
+    ---------
+    df: pandas dataframe
+        well level metadata with specification of agents and concentration
+    control_name: str
+        name of control agent; default is DMSO
+    plate_dims: list of int
+        dimension of physical plate
+    exclude_outer: int
+       number of outer well layers to be excluded
+    
+    Returns:
+    -------
+    df_well: pandas dataframe
+        well level metadata with specification of both agents and negative control
+    """
     num_treatment_wells = len(df)
     num_outer_wells = get_boundary_cell_count(plate_dims, exclude_outer)
     num_available_wells = (plate_dims[0] * plate_dims[1]) - num_outer_wells
@@ -421,7 +288,7 @@ def define_treatment_wells(exclude_outer=1):
 
 
 def randomize_wells(df, plate_names=['BCA2_A'],
-                    fingerprint_drug=None, fingerprint_dose=1):
+                    fingerprint_drug=None, fingerprint_dose=1, exclude_outer=1):
     """ Returns dataframe with randomized wells for all plate replicates
     Parameters:
     -----------
@@ -438,7 +305,7 @@ def randomize_wells(df, plate_names=['BCA2_A'],
     dfr: pandas dataframe
        drug and dose mapped to randomized wells
     """
-    tr_wells, _ = define_treatment_wells(exclude_outer=1)
+    tr_wells, _ = define_treatment_wells(exclude_outer=exclude_outer)
     df['well'] = tr_wells
     ordered_wells = df.well.tolist()
     cols = ["%02d" % s for s in range(1, 25)]
@@ -471,8 +338,21 @@ def randomize_wells(df, plate_names=['BCA2_A'],
         dfc2 = dfc2.sort_values(['well'])
         df_list.append(dfc2)
     dfr = pd.concat(df_list)
-    dfr['agent'] = dfr['agent'].replace([np.nan], '')
-    dfr['role'] = dfr['role'].replace([np.nan], '')
-    dfr = dfr.fillna(0)
+    dfr[['agent', 'role']] = dfr[['agent', 'role']].where(pd.notnull(dfr), '')
+    dfr['concentration'] = dfr['concentration'].fillna(0)
     dfr.index = range(len(dfr))
+    max_agents = np.max([len(a.split(',')) for a in dfr.agent.tolist()])
+    if max_agents > 1:
+        agent_columns = ['agent%d' % ma for ma in range(1, max_agents+1)]
+        dfr['agent'] = dfr['agent'].str.replace(' ', '')
+        dfr[agent_columns] = dfr.agent.str.split(',', expand=True)
+        del dfr['agent']
+        concentration_columns = ['concentration%d' % ma for ma in range(1, max_agents+1)]
+        dfr[concentration_columns] = dfr['concentration'].apply(pd.Series)
+        del dfr['concentration']
     return dfr
+
+
+# def split_text(s):
+#     for k, g in groupby(s, str.isalpha):
+#         yield ''.join(list(g))
