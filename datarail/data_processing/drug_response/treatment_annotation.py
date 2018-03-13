@@ -33,7 +33,7 @@ def add_treatments(dfdata, trtfolder):
                                       trt[i], on='well'))
 
     if 'concentration' in dfout.columns:
-        print 'Concentrations rounded in the log domain'
+        print('Concentrations rounded in the log domain')
         dfout.loc[dfout.concentration>0, 'concentration'] = \
             (10**np.round(np.log10(dfout.concentration[dfout.concentration>0]),4))
     ### error message if some wells have been dropped
@@ -60,7 +60,7 @@ def average_replicates(dfdata, keys=None):
     numerics = ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']
     numcol = set(df_.select_dtypes(include = numerics).columns) -keys -set(['Column', 'Row'])
 
-    print 'Columns to average: "%s"' % '" "'.join(numcol)
+    print('Columns to average: "%s"' % '" "'.join(numcol))
 
     # find the annotation columns
     c_annot = df_.loc[:,list(set(df_.columns) -numcol -keys -set(['Column', 'Row']))].columns.values
@@ -69,7 +69,7 @@ def average_replicates(dfdata, keys=None):
            len(df_.loc[:,list(keys)].drop_duplicates())]
 
     if len(c_l)>0:
-        print 'Columns added as annotations: "%s"' % '" "'.join(c_l)
+        print('Columns added as annotations: "%s"' % '" "'.join(c_l))
     if len(c_annot)>len(c_l):
         print('\n-->Following columns are discarded:\n "%s" \n\t(set as key if necessary)' %
                       '" "'.join(list(set(c_annot) - set(c_l))))

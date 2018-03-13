@@ -186,6 +186,6 @@ def read_fingerprint(xray):
 
     for b in fingerprint:
         if not b[1][1]:
-            print 'Fingerprint failed for plate %s: read as %s !' % (b[0], b[1][0])
+            print('Fingerprint failed for plate %s: read as %s !' % (b[0], b[1][0]))
 
     return fingerprint, all_pos_wells
