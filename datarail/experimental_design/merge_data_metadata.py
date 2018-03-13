@@ -69,8 +69,9 @@ def generate_GRinput(df, counts_column='cell_count'):
                                          df_counts['timepoint'])]
     df_counts['cell_count__time0'] = [dc1[line] for line in
                                       df_counts['cell_line'].tolist()]
+    df_counts = df_counts.loc[:,~df_counts.columns.duplicated()]
     df_counts_mean = df_counts.groupby(['cell_line', 'agent',
                                         'concentration', 'timepoint'])[
         ['cell_count__ctrl', 'cell_count__time0', 'cell_count']].apply(np.mean)
-    df_counts_mean = df_counts_mean.reset_index()
-    return df_counts
+    df_counts_mean = df_counts_mean.reset_index()   
+    return df_counts_mean
