@@ -113,7 +113,7 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
     ----------
     input_file: str
             csv or tsv file name of the input file
-    plate_dims: list
+    plate_dims: list of int
             dimensions of the physical plate
     exlude_outer: int
             number of outer wells to exlude; defaut set to 1
@@ -138,7 +138,6 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
         num_doses = [int(nd) for nd in num_doses]
         num_replicates = df_tr[df_tr.agent == drug][
             'num_replicates'].values[0]
-        print(num_replicates)
         exclude_doses = df_tr[df_tr.agent == drug][
             'exclude_doses'].values[0]
         if len(max_dose) == 1:
@@ -258,26 +257,28 @@ def assign_fingerprint_wells(fingerprint, treatment, dose):
     return df
 
 
-def define_treatment_wells(exclude_outer=1):
+def define_treatment_wells(exclude_outer=1, plate_dims=[16, 24]):
     """ defines set of inner wells to be used for treatments
     Parameter:
     ---------
     exclude_outer: int
        defines outer well columns and rows to to exclude
+    plate_dims: list of int
     Returns:
     -------
     tr_wells, list(set(exclude_wells)): tuple of lists
        lists of treatment wells and outer wells
     """
-    cols = ["%02d" % s for s in range(1, 25)]
-    rows = [chr(65+n) for n in range(16)]
+    cols = ["%02d" % s for s in range(1, plate_dims[1]+1)]
+    rows = [chr(65+n) for n in range(plate_dims[0])]
     wells = []
     for row in rows:
         for col in cols:
             wells.append("%s%s" % (row, col))
-    exclude_pttrn = ['A', 'P', '01', '24']
+    exclude_pttrn = [rows[0], rows[-1], cols[0], cols[-1]]
     if exclude_outer == 2:
-        exclude_pttrn = ['A', 'B', 'O', 'P', '01', '02', '23', '24']
+        exclude_pttrn = [rows[0], rows[1], rows[-2], rows[-1],
+                         cols[0], cols[1], cols[-2], cols[-1]]
     exclude_wells = []
     for well in wells:
         for ep in exclude_pttrn:
@@ -288,7 +289,8 @@ def define_treatment_wells(exclude_outer=1):
 
 
 def randomize_wells(df, plate_names=['BCA2_A'],
-                    fingerprint_drug=None, fingerprint_dose=1, exclude_outer=1):
+                    fingerprint_drug=None, fingerprint_dose=1,
+                    exclude_outer=1, plate_dims=[16, 24]):
     """ Returns dataframe with randomized wells for all plate replicates
     Parameters:
     -----------
@@ -300,16 +302,17 @@ def randomize_wells(df, plate_names=['BCA2_A'],
         drug used for treating fingerprint wells
     fingerprint_dose: int
        dose of drug used for fingerprint wells treatment
+    plate_dims: list of int
     Returns:
     --------
     dfr: pandas dataframe
        drug and dose mapped to randomized wells
     """
-    tr_wells, _ = define_treatment_wells(exclude_outer=exclude_outer)
+    tr_wells, _ = define_treatment_wells(exclude_outer, plate_dims)
     df['well'] = tr_wells
     ordered_wells = df.well.tolist()
-    cols = ["%02d" % s for s in range(1, 25)]
-    rows = [chr(65+n) for n in range(16)]
+    cols = ["%02d" % s for s in range(1, plate_dims[1]+1)]
+    rows = [chr(65+n) for n in range(plate_dims[0])]
     wells = []
     for row in rows:
         for col in cols:
@@ -346,6 +349,7 @@ def randomize_wells(df, plate_names=['BCA2_A'],
         agent_columns = ['agent%d' % ma for ma in range(1, max_agents+1)]
         dfr['agent'] = dfr['agent'].str.replace(' ', '')
         dfr[agent_columns] = dfr.agent.str.split(',', expand=True)
+        dfr[agent_columns] = dfr[agent_columns].where(pd.notnull(dfr), '')
         del dfr['agent']
         concentration_columns = ['concentration%d' % ma for ma in range(1, max_agents+1)]
         dfr[concentration_columns] = dfr['concentration'].apply(pd.Series)
