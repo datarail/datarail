@@ -32,7 +32,7 @@ def Columbus_processing(filename, fields,
 
     if outputfile:
         df.to_csv(outputfile, index=False, sep='\t')
-        print 'File \n\t%s \nprocessed and saved in \n\t%s' % (filename, outputfile)
+        print('File \n\t%s \nprocessed and saved in \n\t%s' % (filename, outputfile))
 
     return df
 
@@ -61,8 +61,8 @@ def _Correct_fields(dfin):
 
     f_cnt = np.bincount(dfin['Number of Analyzed Fields'].astype(int))
     defaultNfield = np.max([i for (i,c) in enumerate(f_cnt) if c==max(f_cnt)])
-    print 'Default number of fields: %i ; %i wells with missing field(s)' % \
-        (defaultNfield, np.sum(f_cnt[range(0,len(f_cnt)) != defaultNfield]))
+    print('Default number of fields: %i ; %i wells with missing field(s)' % \
+        (defaultNfield, np.sum(f_cnt[range(0,len(f_cnt)) != defaultNfield])))
 
     for f in _get_count_fields(dfin):
         dfout[f] = np.ceil((dfin[f]*defaultNfield/dfin['Number of Analyzed Fields']))
@@ -88,7 +88,7 @@ def _Define_count_fields(dfin,
 
     for af in fields:
         if af[0] not in fs:
-            print 'Missing column: ' + af[0]
+            print('Missing column: ' + af[0])
             raise ValueError('Missing column in dataframe')
         dfout = pd.concat([ dfout, pd.DataFrame(dfin[af[0]].values,
                                                 columns=[af[1]], copy=True) ],
@@ -96,14 +96,14 @@ def _Define_count_fields(dfin,
 
     if cell_count:
         if 'cell_count' in [fc[1] for fc in fields]:
-            print 'cell_count column defined twice'
+            print('cell_count column defined twice')
             raise ValueError('cell_count column defined twice')
 
         # get the cell count from the fields defined
         cc_f = re.split('\s?[+-/*]\s?', cell_count)
         if np.any([f not in [fc[1] for fc in fields] for f in cc_f]):
-            print 'Missing column(s): ' + \
-                ' - '.join([f for f in cc_f if f not in [fc[1] for fc in fields]])
+            print('Missing column(s): ' + \
+                ' - '.join([f for f in cc_f if f not in [fc[1] for fc in fields]]))
             raise ValueError('Missing column in dataframe')
 
         cc_eval = cell_count
