@@ -271,21 +271,14 @@ def define_treatment_wells(exclude_outer=1, plate_dims=[16, 24]):
     """
     cols = ["%02d" % s for s in range(1, plate_dims[1]+1)]
     rows = [chr(65+n) for n in range(plate_dims[0])]
-    wells = []
+    if exclude_wells:
+        rows = rows[exclude_outer:-exclude_outer]
+        cols = cols[exclude_outer:-exclude_outer]
+    tr_wells = []
     for row in rows:
         for col in cols:
-            wells.append("%s%s" % (row, col))
-    exclude_pttrn = [rows[0], rows[-1], cols[0], cols[-1]]
-    if exclude_outer == 2:
-        exclude_pttrn = [rows[0], rows[1], rows[-2], rows[-1],
-                         cols[0], cols[1], cols[-2], cols[-1]]
-    exclude_wells = []
-    for well in wells:
-        for ep in exclude_pttrn:
-            if well.find(ep) != -1:
-                exclude_wells.append(well)
-    tr_wells = [s for s in wells if s not in exclude_wells]
-    return tr_wells, list(set(exclude_wells))
+            tr_wells.append("%s%s" % (row, col)) 
+    return tr_wells
 
 
 def randomize_wells(df, plate_names=['BCA2_A'],
@@ -308,7 +301,7 @@ def randomize_wells(df, plate_names=['BCA2_A'],
     dfr: pandas dataframe
        drug and dose mapped to randomized wells
     """
-    tr_wells, _ = define_treatment_wells(exclude_outer, plate_dims)
+    tr_wells = define_treatment_wells(exclude_outer, plate_dims)
     df['well'] = tr_wells
     ordered_wells = df.well.tolist()
     cols = ["%02d" % s for s in range(1, plate_dims[1]+1)]
