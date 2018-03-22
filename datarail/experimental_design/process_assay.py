@@ -271,7 +271,7 @@ def define_treatment_wells(exclude_outer=1, plate_dims=[16, 24]):
     """
     cols = ["%02d" % s for s in range(1, plate_dims[1]+1)]
     rows = [chr(65+n) for n in range(plate_dims[0])]
-    if exclude_wells:
+    if exclude_outer:
         rows = rows[exclude_outer:-exclude_outer]
         cols = cols[exclude_outer:-exclude_outer]
     tr_wells = []
