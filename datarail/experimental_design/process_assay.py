@@ -1,7 +1,5 @@
 import pandas as pd
 import numpy as np
-from collections import OrderedDict
-from itertools import groupby
 from itertools import product
 import datarail.experimental_design.edge_fingerprint as edge_fingerprint
 import warnings
@@ -27,17 +25,18 @@ def get_boundary_cell_count(plate_dims, exclude_outer=1):
 
 
 def set_dosing(max_dose, num_doses, num_replicates=1):
-    """ returns list of doses (micromolar) at half log intervals 
+    """ returns list of doses (micromolar) at half log intervals
     Parameters
     ----------
     max_dose: int
         highest dose in the dose range
     num_doses: int
-        number of doses in the dose range. Maximum is set to 9. 
-        If num doses < 9, then doses will be removed starting from lowest moving to higher doses.
+        number of doses in the dose range. Maximum is set to 9.
+        If num doses < 9, then doses will be removed starting from
+        lowest moving to higher doses.
     num_replicates: int
         number of times the dose range is replicated on the plate
-    
+
     Returns:
     -------
     dose_range: list of floats
@@ -54,17 +53,19 @@ def set_dosing(max_dose, num_doses, num_replicates=1):
 
 
 def set_combo_dosing(max_doses, num_doses, eq=False, num_replicates=1):
-    """ returns combination of doses  for 2 or more agents 
+    """ returns combination of doses  for 2 or more agents
     Parameters
     ----------
     max_doses: list of int
         highest doses in the dose range for each agent
     num_doses: list of int
-        number of doses in the dose range for each agent. Maximum is set to 9. 
-        If num doses < 9, then doses will be removed starting from lowest moving to higher doses.
+        number of doses in the dose range for each agent. Maximum is set to 9.
+        If num doses < 9, then doses will be removed starting from
+        lowest moving to higher doses.
     num_replicates: list of int
-        list of number of times the dose range is replicated on the plate for each agent
-    
+        list of number of times the dose range is replicated on the plate
+        for each agent
+
     Returns:
     -------
     dose_range: list of tuples
@@ -76,7 +77,7 @@ def set_combo_dosing(max_doses, num_doses, eq=False, num_replicates=1):
         dose_range = sorted(list(set(dose_range)))[::-1]
         dose_range = [round(s, 4) for s in dose_range]
         dose_range = dose_range[:nd]
-        dose_lists.append(dose_range)        
+        dose_lists.append(dose_range)
     combo_doses = list(product(*dose_lists))
     if num_replicates > 1:
         cd = list(set(combo_doses))
@@ -84,7 +85,7 @@ def set_combo_dosing(max_doses, num_doses, eq=False, num_replicates=1):
             combo_doses.extend(cd)
     if eq:
         combo_doses = [c for c in combo_doses if len(set(c)) == 1]
-    return combo_doses    
+    return combo_doses
 
 
 def exclude_treatment(df, drug, doses):
@@ -94,7 +95,7 @@ def exclude_treatment(df, drug, doses):
 
 
 def construct_well_level_df(input_file, plate_dims=[16, 24],
-                            exclude_outer=1):
+                            exclude_outer=1, cell_lines=[]):
     """ Generates long table of doses and drugs mapped to wells.
 
     Input file should be broad description of the planned experimental design
@@ -107,7 +108,8 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
        'treatment', positive_control', 'negative_control', or 'fingerprint'
     - 'num_replicates' column listing number of times a drug's
        dosing scheme is replicated on the same plate
-    - 'exclude_doses' column (OPTIOINAL) listing doses to be excluded for a given drug
+    - 'exclude_doses' column (OPTIOINAL) listing doses to be excluded
+       for a given drug
 
     Parameters:
     ----------
@@ -138,17 +140,17 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
         num_doses = [int(nd) for nd in num_doses]
         num_replicates = df_tr[df_tr.agent == drug][
             'num_replicates'].values[0]
-        exclude_doses = df_tr[df_tr.agent == drug][
-            'exclude_doses'].values[0]
+#        exclude_doses = df_tr[df_tr.agent == drug][
+#            'exclude_doses'].values[0]
         if len(max_dose) == 1:
             max_dose = max_dose[0]
             num_doses = num_doses[0]
             dose_range = set_dosing(max_dose, num_doses, num_replicates)
-            #if exclude_doses == '':
-            #    dose_range = dose_range[:num_doses]
-            #else:
-            #    exclude_doses = [float(s) for s in exclude_doses.split(',')]
-            #    dose_range = [d for d in dose_range if d not in exclude_doses]
+            # if exclude_doses == '':
+            #     dose_range = dose_range[:num_doses]
+            # else:
+            #     exclude_doses = [float(s) for s in exclude_doses.split(',')]
+            #     dose_range =[d for d in dose_range if d not in exclude_doses]
         else:
             eqm = df_tr[df_tr.agent == drug]['equivalent'].values[0]
             dose_range = set_combo_dosing(max_dose, num_doses,
@@ -172,13 +174,18 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
     else:
         warnings.warn(
             'Experimental design does not have positive_controls')
-    num_outer_wells = get_boundary_cell_count(plate_dims, exclude_outer)
-    num_available_wells = (plate_dims[0] * plate_dims[1]) - num_outer_wells
+    # num_outer_wells = get_boundary_cell_count(plate_dims, exclude_outer)
+    num_wells_per_cell_line = wells_per_cell_line(cell_lines, exclude_outer)
+    # num_available_wells = (plate_dims[0] * plate_dims[1]) - num_outer_wells
     num_treatment_wells = len(doses)
-    if num_available_wells < num_treatment_wells:
-        warnings.warn('Number of treatment wells required (%d)'
-                      'exceed available wells (%d)' % (
-                         num_treatment_wells, num_available_wells))
+    # if num_available_wells < num_treatment_wells:
+    #     warnings.warn('Number of treatment wells required (%d)'
+    #                   'exceed available wells (%d)' % (
+    #                      num_treatment_wells, num_available_wells))
+    if num_wells_per_cell_line < num_treatment_wells:
+        warnings.warn('Number of treatment wells per cell line required (%d)'
+                      'exceed available wells per cell line (%d)' % (
+                          num_treatment_wells, num_wells_per_cell_line))
     df_well = pd.DataFrame(list(zip(drugs, doses, role, identifier)),
                            columns=['agent', 'concentration',
                                     'role', 'identifier'])
@@ -186,7 +193,8 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
 
 
 def add_negative_control(df, control_name='DMSO',
-                         plate_dims=[16, 24], exclude_outer=1):
+                         plate_dims=[16, 24], exclude_outer=1,
+                         cell_lines=[]):
     """ Assigns negative control agent to untreated wells
     Parameter
     ---------
@@ -198,16 +206,18 @@ def add_negative_control(df, control_name='DMSO',
         dimension of physical plate
     exclude_outer: int
        number of outer well layers to be excluded
-    
+
     Returns:
     -------
     df_well: pandas dataframe
-        well level metadata with specification of both agents and negative control
+        well level metadata with specification of both agents and
+        negative control
     """
     num_treatment_wells = len(df)
-    num_outer_wells = get_boundary_cell_count(plate_dims, exclude_outer)
-    num_available_wells = (plate_dims[0] * plate_dims[1]) - num_outer_wells
-    num_nc_wells = num_available_wells - num_treatment_wells
+    # num_outer_wells = get_boundary_cell_count(plate_dims, exclude_outer)
+    # num_available_wells = (plate_dims[0] * plate_dims[1]) - num_outer_wells
+    num_wells_per_cell_line = wells_per_cell_line(cell_lines, exclude_outer)
+    num_nc_wells = num_wells_per_cell_line - num_treatment_wells
     if num_nc_wells < 8:
         print("")
         warnings.warn(
@@ -277,11 +287,11 @@ def define_treatment_wells(exclude_outer=1, plate_dims=[16, 24]):
     tr_wells = []
     for row in rows:
         for col in cols:
-            tr_wells.append("%s%s" % (row, col)) 
+            tr_wells.append("%s%s" % (row, col))
     return tr_wells
 
 
-def randomize_wells(df, plate_names=['BCA2_A'],
+def randomize_wells(df_plate,  #plate_names=['BCA2_A'], randomization_scheme=[1],
                     fingerprint_drug=None, fingerprint_dose=1,
                     exclude_outer=1, plate_dims=[16, 24]):
     """ Returns dataframe with randomized wells for all plate replicates
@@ -301,35 +311,42 @@ def randomize_wells(df, plate_names=['BCA2_A'],
     dfr: pandas dataframe
        drug and dose mapped to randomized wells
     """
-    tr_wells = define_treatment_wells(exclude_outer, plate_dims)
-    df['well'] = tr_wells
-    ordered_wells = df.well.tolist()
     cols = ["%02d" % s for s in range(1, plate_dims[1]+1)]
     rows = [chr(65+n) for n in range(plate_dims[0])]
     wells = []
     for row in rows:
         for col in cols:
             wells.append("%s%s" % (row, col))
+    # dfpt = df_plate[df_plate.randomization_scheme != 'time0_Ctrl']
+    
     df_list = []
-    for rep_num, plate in enumerate(plate_names):
-        np.random.seed(rep_num+1)
-        randomized_wells = np.random.choice(ordered_wells,
-                                            size=len(ordered_wells),
-                                            replace=False)
-        df['well'] = randomized_wells
-        df.index = df['well']
+    # for rep_num, plate in zip(randomization_scheme, plate_names):
+    for plate_num in range(len(df_plate)):
+        barcode, cell_lines, timepoint, randomization_num, well_input_file = df_plate.iloc[plate_num].values
+        timepoint = str(timepoint)
+        cell_lines = cell_lines.split(', ')
+        randomization_num = int(randomization_num)
+        if timepoint == 'time0_ctrl':
+            dfw = pd.DataFrame()
+        else:
+            dfw = construct_well_level_df(well_input_file, cell_lines=cell_lines)
+            dfw = add_negative_control(dfw, cell_lines=cell_lines)
+        df = randomize_per_line(dfw, randomization_num, exclude_outer, cell_lines)
         if fingerprint_drug:
-            df_fp = assign_fingerprint_wells(plate,
+            df_fp = assign_fingerprint_wells(barcode,
                                              fingerprint_drug,
                                              fingerprint_dose)
             df_fp.index = df_fp['well']
             dfc = pd.concat([df_fp, df])
         else:
             dfc = df.copy()
-        dfc['plate'] = [plate] * len(dfc)
+        dfc['barcode'] = [barcode] * len(dfc)
+        dfc['timepoint'] = [timepoint] * len(dfc)
         remainder_wells = [w for w in wells if w not in dfc.well.tolist()]
-        dfo = pd.DataFrame(list(zip(remainder_wells, [plate] * len(
-            remainder_wells))), columns=['well', 'plate'])
+        dfo = pd.DataFrame(list(zip(remainder_wells,
+                                    [barcode] * len(remainder_wells),
+                                    [timepoint] * len(remainder_wells))),
+                           columns=['well', 'barcode', 'timepoint'])
         dfc2 = pd.concat([dfo, dfc])
         dfc2 = dfc2.sort_values(['well'])
         df_list.append(dfc2)
@@ -344,12 +361,49 @@ def randomize_wells(df, plate_names=['BCA2_A'],
         dfr[agent_columns] = dfr.agent.str.split(',', expand=True)
         dfr[agent_columns] = dfr[agent_columns].where(pd.notnull(dfr), '')
         del dfr['agent']
-        concentration_columns = ['concentration%d' % ma for ma in range(1, max_agents+1)]
+        concentration_columns = ['concentration%d' % ma
+                                 for ma in range(1, max_agents+1)]
         dfr[concentration_columns] = dfr['concentration'].apply(pd.Series)
         del dfr['concentration']
     return dfr
 
 
-# def split_text(s):
-#     for k, g in groupby(s, str.isalpha):
-#         yield ''.join(list(g))
+def wells_per_cell_line(cell_lines, exclude_outer):
+    if len(cell_lines) <= 1:
+        avail_wells = len(define_treatment_wells(exclude_outer=exclude_outer))
+        avail_wells_per_line = avail_wells
+    if len(cell_lines) > 1:
+        avail_wells = len(define_treatment_wells(exclude_outer=2))
+        avail_wells_per_line = avail_wells / len(cell_lines)
+    return int(avail_wells_per_line)
+
+
+def chunks(l, n):
+    n = max(1, n)
+    return list(l[i:i+n] for i in range(0, len(l), n))
+
+
+def randomize_per_line(df, rep_num, exclude_outer,
+                       cell_lines=[''], plate_dims=[16, 24]):
+    if len(cell_lines) > 1:
+        exclude_outer = 2
+    avail_wells_per_line = wells_per_cell_line(cell_lines, exclude_outer)
+    tr_wells = define_treatment_wells(exclude_outer, plate_dims)
+    tr_wells_per_cell_line = chunks(tr_wells, avail_wells_per_line)
+    print(len(tr_wells_per_cell_line[0]))
+    dfrs = []
+    for i, cell_line in enumerate(cell_lines):
+        dfc = df.copy()
+        dfc['well'] = tr_wells_per_cell_line[i]
+        ordered_wells = dfc.well.tolist()
+        if rep_num > 0:
+            np.random.seed(rep_num)
+            randomized_wells = np.random.choice(ordered_wells,
+                                                size=len(ordered_wells),
+                                                replace=False)
+            dfc['well'] = randomized_wells
+        dfc.index = dfc['well']
+        dfc['cell_line'] = [cell_line] * len(dfc)
+        dfrs.append(dfc)
+    dfr = pd.concat(dfrs)
+    return dfr
