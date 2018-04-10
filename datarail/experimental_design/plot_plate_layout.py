@@ -14,6 +14,8 @@ def plot_feature(df, plate=None, feature='cell_line', ax=None):
     if plate is None:
         plate = df.barcode.unique()[1]
     dfp = df[df.barcode == plate].copy()
+    tp = dfp.timepoint.unique()[0]
+    tp = tp.replace('.0', ' hrs')
     dfp[feature] = dfp[feature].fillna('untreated')
     hue_order = dfp[feature].unique()[::-1]
     labels = hue_order
@@ -35,7 +37,7 @@ def plot_feature(df, plate=None, feature='cell_line', ax=None):
         cg.bar(0, 0, color=color_dict[label],
                label=label, linewidth=0)
     cg.legend(loc=(0.3, -0.7))
-    ax.set_title(plate)
+    ax.set_title("%s (%s)" % (plate, tp))
     ax.set_xlabel('')
     ax.set_ylabel('')
     return dfpv
@@ -47,6 +49,8 @@ def plot_concentration(df, plate=None, ax=None):
     if plate is None:
         plate = df.barcode.unique()[1]
     dfp = df[df.barcode == plate].copy()
+    tp = dfp.timepoint.unique()[0]
+    tp = tp.replace('.0', ' hrs')
     dfp['concentration'] = dfp['concentration'].fillna(0)
     dfp['concentration'] = dfp['concentration'].replace([0], 1e-6)
     labels = dfp.concentration.unique()
@@ -66,13 +70,14 @@ def plot_concentration(df, plate=None, ax=None):
                                     1, 10, 1e2, 1e3, 1e4, 1e5],
                           "label": 'concentration (um)'},
                 vmin=1e-6, cbar=True, ax=ax, cbar_ax=cax)
-    ax.set_title(plate)
+    ax.set_title("%s (%s)" % (plate, tp))
     ax.set_xlabel('')
     ax.set_ylabel('')
     return dfpv
 
 
 def plot_summary(df):
+    plt.ioff()
     plates = df.barcode.unique()
     pdf_pages = PdfPages('plate_layout.pdf')
     for plate in plates:
