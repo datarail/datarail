@@ -46,15 +46,24 @@ def plot_concentration(df, plate=None, ax=None):
     if ax is None:
         fig, ax = plt.subplots()
     if plate is None:
-        plate = df.barcode.unique()[1]
+        plate = df.barcode.unique()[0]
     dfp = df[df.barcode == plate].copy()
     tp = dfp.timepoint.unique()[0]
     tp = tp.replace('.0', ' hrs')
     dfp['concentration'] = dfp['concentration'].fillna(0)
-    dfp['concentration'] = dfp['concentration'].replace([0], 1e-6)
+    cs = np.sort(dfp.concentration.unique())
+    if len(cs) > 1:
+        cmin = np.log10(cs[1])
+        cmax = np.log10(cs[-1])
+        ticks = [10 ** c for c in np.arange(cmin, cmax+1)]
+        cmd = 10 ** (cmin-1)
+    else:
+        ticks = [0]
+        cmd = 1e-6
+    dfp['concentration'] = dfp['concentration'].replace([0], cmd)
     labels = dfp.concentration.unique()
     colrs = sns.color_palette("YlOrRd", len(labels)).as_hex()
-    colrs[np.argmax(labels == 1e-6)] = 'whitesmoke'
+    colrs[np.argmax(labels == cmd)] = 'whitesmoke'
     cmap = colors.ListedColormap(colrs)
     dfp['row'] = [s[0] for s in dfp.well.tolist()]
     dfp['column'] = [s[1:] for s in dfp.well.tolist()]
@@ -65,10 +74,9 @@ def plot_concentration(df, plate=None, ax=None):
     sns.heatmap(dfpv, norm=LogNorm(s.min(), s.max()),
                 cmap=cmap,
                 linewidth=0.3, linecolor='white',
-                cbar_kws={"ticks": [1e-4, 1e-3, 1e-2, 1e-1,
-                                    1, 10, 1e2, 1e3, 1e4, 1e5],
+                cbar_kws={"ticks": ticks,
                           "label": 'concentration (um)'},
-                vmin=1e-6, cbar=True, ax=ax, cbar_ax=cax)
+                vmin=cmd, cbar=True, ax=ax, cbar_ax=cax)
     ax.set_title("%s (%s)" % (plate, tp))
     ax.set_xlabel('')
     ax.set_ylabel('')
