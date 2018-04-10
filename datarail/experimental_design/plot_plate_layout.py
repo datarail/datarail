@@ -17,8 +17,7 @@ def plot_feature(df, plate=None, feature='cell_line', ax=None):
     tp = dfp.timepoint.unique()[0]
     tp = tp.replace('.0', ' hrs')
     dfp[feature] = dfp[feature].fillna('untreated')
-    hue_order = dfp[feature].unique()[::-1]
-    labels = hue_order
+    labels = np.sort(dfp[feature].unique())
     colrs = sns.color_palette("husl", len(labels)).as_hex()
     colrs[np.argmax(labels == 'untreated')] = 'whitesmoke'
     color_dict = {lab: col for lab, col in zip(labels, colrs)}
