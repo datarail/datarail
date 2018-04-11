@@ -333,8 +333,10 @@ def randomize_wells(df_plate,
             dfw = pd.DataFrame()
         else:
             dfw = construct_well_level_df(well_input_file,
-                                          cell_lines=cell_lines)
-            dfw = add_negative_control(dfw, cell_lines=cell_lines)
+                                          cell_lines=cell_lines,
+                                          exclude_outer=exclude_outer)
+            dfw = add_negative_control(dfw, cell_lines=cell_lines,
+                                       exclude_outer=exclude_outer)
         df = randomize_per_line(dfw, randomization_num,
                                 exclude_outer, cell_lines)
         if fingerprint_drug:
