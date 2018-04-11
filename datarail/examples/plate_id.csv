@@ -1,0 +1,15 @@
+barcode,cell_line,timepoint,randomization_scheme,well_level_input
+041018_0,CL_1,time0_ctrl,0,input_file.csv
+041018_1,CL_1,72,1,input_file.csv
+041018_2,CL_1,72,2,input_file.csv
+041018_3,CL_1,72,3,input_file.csv
+041018_4,CL_1,168,1,input_file.csv
+041018_5,CL_1,168,2,input_file.csv
+041018_6,CL_1,168,3,input_file.csv
+041018_7,CL_2,time0_ctrl,0,input_file.csv
+041018_8,CL_2,72,1,input_file.csv
+041018_9,CL_2,72,2,input_file.csv
+041018_10,CL_2,72,3,input_file.csv
+041018_11,CL_2,168,1,input_file.csv
+041018_12,CL_2,168,2,input_file.csv
+041018_13,CL_2,168,3,input_file.csv
