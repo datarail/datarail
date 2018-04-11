@@ -9,10 +9,28 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 
 def plot_feature(df, plate=None, feature='cell_line', ax=None):
+    """ Plots layout of agents(drug) or cell lines for a single plate
+    Parameters
+    ----------
+    df: pandas dataframe
+       metadata table with barcode, well, agent, cell_line,
+       and concentration as columns
+    plate: str
+      identifier of plate in barcode column
+    feature: str
+      feature to plot ('cell_line' or 'agent')
+    ax: subplot object
+      provides positional reference for plot in master pdf
+    Returns
+    -------
+    dfpv: pandas dataframe
+      metadata table pivoted such that it has plate dimensions
+      value in dfpv is the feature selected.
+    """
     if ax is None:
-        ax = plt.figure()
+        fig, ax = plt.subplots()
     if plate is None:
-        plate = df.barcode.unique()[1]
+        plate = df.barcode.unique()[0]
     dfp = df[df.barcode == plate].copy()
     tp = dfp.timepoint.unique()[0]
     tp = tp.replace('.0', '')
@@ -58,6 +76,24 @@ def plot_feature(df, plate=None, feature='cell_line', ax=None):
 
 def plot_concentration(df, feature='concentration',
                        plate=None, ax=None):
+    """ Plots layout of agent(drug) concentrations for a single plate
+    Parameters
+    ----------
+    df: pandas dataframe
+       metadata table with barcode, well, agent, cell_line, 
+       and concentration as columns
+    plate: str
+      identifier of plate in barcode column
+    feature: str
+      feature to plot (default is concentration)
+    ax: subplot object
+      provides positional reference for plot in master pdf
+    Returns
+    -------
+    dfpv: pandas dataframe
+      metadata table pivoted such that it has plate dimensions
+      value in dfpv is the feature (concentration) selected.
+    """
     if ax is None:
         fig, ax = plt.subplots()
     if plate is None:
@@ -101,6 +137,17 @@ def plot_concentration(df, feature='concentration',
 
 
 def plot_summary(df, figname='plate_layout.pdf'):
+    """ Generated multi-page pdf (one page per plate) of plate layouts.
+    Each page has the layout of cell_lines (column1), agents(column2)
+    and corresponding concentrations (column3)
+    Parameters
+    ----------
+    df: pandas dataframe
+       metadata table with barcode, well, agent, cell_line,
+       and concentration as columns
+    figname: str
+      filename for saving the output pdf
+    """
     plt.ioff()
     plates = df.barcode.unique()
     pdf_pages = PdfPages(figname)
