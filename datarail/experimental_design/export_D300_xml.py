@@ -9,7 +9,7 @@ def combine_combos(df):
 
 
 def combine_duplicates(x):
-    return ';'.join(x.astype(str))
+    return ','.join(x.astype(str))
 
 
 def export2pd(filename):
@@ -32,9 +32,9 @@ def export2pd(filename):
     del dfm['barcode']
     del dfm['well']
     dfm = dfm.reset_index()
-    dfm['agent'] = [s.replace(';DMSO normalization', '')
+    dfm['agent'] = [s.replace(',DMSO normalization', '')
                     for s in dfm.agent.tolist()]
-    dfm['concentration'] = [s.replace(';0.0', '') for s in
+    dfm['concentration'] = [s.replace(',0.0', '') for s in
                             dfm.concentration.tolist()]
     dfm['agent'] = [s.replace('DMSO normalization', 'DMSO')
                     for s in dfm.agent.tolist()]
@@ -49,7 +49,9 @@ def export2pd(filename):
         del dfm['agent']
         concentration_columns = ['concentration%d' % ma
                                  for ma in range(1, max_agents+1)]
-        dfm[concentration_columns] = dfm['concentration'].apply(pd.Series)
+        dfm[concentration_columns] = dfm.concentration.str.split(',',
+                                                                 expand=True)
+        dfm[concentration_columns] = dfm[concentration_columns].fillna(0)
         del dfm['concentration']
         for col in concentration_columns:
             dfm[col] = [round(float(s), 2) for s in dfm[col].tolist()]
