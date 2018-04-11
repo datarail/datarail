@@ -438,7 +438,6 @@ def randomize_per_line(df, rand_num, exclude_outer,
     avail_wells_per_line = wells_per_cell_line(cell_lines, exclude_outer)
     tr_wells = define_treatment_wells(exclude_outer, plate_dims)
     tr_wells_per_cell_line = chunks(tr_wells, avail_wells_per_line)
-    print(len(tr_wells_per_cell_line[0]))
     dfrs = []
     for i, cell_line in enumerate(cell_lines):
         dfc = df.copy()
