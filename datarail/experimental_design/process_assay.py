@@ -291,20 +291,20 @@ def define_treatment_wells(exclude_outer=1, plate_dims=[16, 24]):
     return tr_wells
 
 
-def randomize_wells(df_plate,  #plate_names=['BCA2_A'], randomization_scheme=[1],
+def randomize_wells(df_plate,
                     fingerprint_drug=None, fingerprint_dose=1,
                     exclude_outer=1, plate_dims=[16, 24]):
     """ Returns dataframe with randomized wells for all plate replicates
     Parameters:
     -----------
     df: pandas dataframe
-        ordered wells mapped to drug and dose for each master plate
-    fingerprints: list of str
-        list of plate identifiers (barcode) for all plate replicates
+        plate level input metadata file
     fingerprint_drug: str
         drug used for treating fingerprint wells
     fingerprint_dose: int
        dose of drug used for fingerprint wells treatment
+    exclude_outer: int
+       number of outer well layers to exclude
     plate_dims: list of int
     Returns:
     --------
@@ -317,21 +317,26 @@ def randomize_wells(df_plate,  #plate_names=['BCA2_A'], randomization_scheme=[1]
     for row in rows:
         for col in cols:
             wells.append("%s%s" % (row, col))
-    # dfpt = df_plate[df_plate.randomization_scheme != 'time0_Ctrl']
-    
+
     df_list = []
     # for rep_num, plate in zip(randomization_scheme, plate_names):
     for plate_num in range(len(df_plate)):
-        barcode, cell_lines, timepoint, randomization_num, well_input_file = df_plate.iloc[plate_num].values
+        barcode = df_plate.loc[plate_num, 'barcode']
+        cell_lines = df_plate.loc[plate_num, 'cell_line']
+        timepoint = df_plate.loc[plate_num, 'timepoint']
+        randomization_num = df_plate.loc[plate_num, 'randomization_scheme']
+        well_input_file = df_plate.loc[plate_num, 'well_level_input']
         timepoint = str(timepoint)
         cell_lines = cell_lines.split(', ')
         randomization_num = int(randomization_num)
         if timepoint == 'time0_ctrl':
             dfw = pd.DataFrame()
         else:
-            dfw = construct_well_level_df(well_input_file, cell_lines=cell_lines)
+            dfw = construct_well_level_df(well_input_file,
+                                          cell_lines=cell_lines)
             dfw = add_negative_control(dfw, cell_lines=cell_lines)
-        df = randomize_per_line(dfw, randomization_num, exclude_outer, cell_lines)
+        df = randomize_per_line(dfw, randomization_num,
+                                exclude_outer, cell_lines)
         if fingerprint_drug:
             df_fp = assign_fingerprint_wells(barcode,
                                              fingerprint_drug,
@@ -369,6 +374,18 @@ def randomize_wells(df_plate,  #plate_names=['BCA2_A'], randomization_scheme=[1]
 
 
 def wells_per_cell_line(cell_lines, exclude_outer):
+    """ Computes number of wells available per cell line
+    Parameters
+    ----------
+    cell_lines: list
+        list of cell lines on a plate
+    exclude_outer: int
+        number of outer well layers to exclude
+    Returns
+    -------
+    avail_wells_per_line: int
+        number of wells available per cell line
+    """
     if len(cell_lines) <= 1:
         avail_wells = len(define_treatment_wells(exclude_outer=exclude_outer))
         avail_wells_per_line = avail_wells
@@ -379,12 +396,43 @@ def wells_per_cell_line(cell_lines, exclude_outer):
 
 
 def chunks(l, n):
+    """ splits list l into chunks of size n
+    Parameters
+    ----------
+    l: list
+       list of well names
+    n: int
+       number of wells available per cell line
+    Returns
+    -------
+    wells_per_line: list of lists
+        lenght of the list equals number of cell lines
+    """
     n = max(1, n)
-    return list(l[i:i+n] for i in range(0, len(l), n))
+    wells_per_line = list(l[i:i+n] for i in range(0, len(l), n))
+    return wells_per_line
 
 
-def randomize_per_line(df, rep_num, exclude_outer,
+def randomize_per_line(df, rand_num, exclude_outer,
                        cell_lines=[''], plate_dims=[16, 24]):
+    """ Takes initial drug layout schema and applies the layout pattern
+    to equal portions of the plate based on the number of cell lines.
+    Wells are randomized if rand_num > 1
+    df: pandas dataframe
+        initial drug layout schema
+    rand_num: int
+       seed to be used for randomizaition
+    cell_lines: list of str
+       cell lines on the plate
+    plate_dims: list of int
+       physical dimensions of the plate
+    Returns
+    -------
+    dfr: pandas dataframe
+       drug schema layout with layout repeated per cell line and assigned to
+       equal portions of the plate. Wells are assigned and
+       randomized if rand num > 1.
+    """
     if len(cell_lines) > 1:
         exclude_outer = 2
     avail_wells_per_line = wells_per_cell_line(cell_lines, exclude_outer)
@@ -396,8 +444,8 @@ def randomize_per_line(df, rep_num, exclude_outer,
         dfc = df.copy()
         dfc['well'] = tr_wells_per_cell_line[i]
         ordered_wells = dfc.well.tolist()
-        if rep_num > 0:
-            np.random.seed(rep_num)
+        if rand_num > 0:
+            np.random.seed(rand_num)
             randomized_wells = np.random.choice(ordered_wells,
                                                 size=len(ordered_wells),
                                                 replace=False)
