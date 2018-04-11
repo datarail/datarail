@@ -1,8 +1,9 @@
 import pandas as pd
+import numpy as np
 
 
 def combine_combos(df):
-    dfc = df.groupby(['plate', 'well'], as_index=True).apply(
+    dfc = df.groupby(['barcode', 'well'], as_index=True).apply(
           lambda x: x.apply(combine_duplicates, axis=0))
     return dfc
 
@@ -25,10 +26,10 @@ def export2pd(filename):
     """
     dfi = pd.read_excel(filename, sheet_name='Tabular detail')
     dfi = dfi[['Plate', 'Dispensed\nwell', 'Fluid name', 'Dispensed conc.']]
-    dfi.columns = ['plate', 'well', 'agent', 'concentration']
+    dfi.columns = ['barcode', 'well', 'agent', 'concentration']
     dfi['concentration'] = dfi['concentration'].fillna(0)
     dfm = combine_combos(dfi)
-    del dfm['plate']
+    del dfm['barcode']
     del dfm['well']
     dfm = dfm.reset_index()
     dfm['agent'] = [s.replace(';DMSO normalization', '')
@@ -39,4 +40,20 @@ def export2pd(filename):
                     for s in dfm.agent.tolist()]
     dfm['role'] = ['negative_control' if s == 'DMSO' else 'treatment'
                    for s in dfm.agent.tolist()]
+    max_agents = np.max([len(a.split(',')) for a in dfm.agent.tolist()])
+    if max_agents > 1:
+        agent_columns = ['agent%d' % ma for ma in range(1, max_agents+1)]
+        dfm['agent'] = dfm['agent'].str.replace(' ', '')
+        dfm[agent_columns] = dfm.agent.str.split(',', expand=True)
+        dfm[agent_columns] = dfm[agent_columns].where(pd.notnull(dfm), '')
+        del dfm['agent']
+        concentration_columns = ['concentration%d' % ma
+                                 for ma in range(1, max_agents+1)]
+        dfm[concentration_columns] = dfm['concentration'].apply(pd.Series)
+        del dfm['concentration']
+        for col in concentration_columns:
+            dfm[col] = [round(float(s), 2) for s in dfm[col].tolist()]
+    else:
+        dfm['concentration'] = [round(float(s), 2)
+                                for s in dfm.concentration.tolist()]
     return dfm
