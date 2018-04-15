@@ -58,4 +58,8 @@ def export2pd(filename):
     else:
         dfm['concentration'] = [round(float(s), 2)
                                 for s in dfm.concentration.tolist()]
+    dfp = pd.read_excel(filename, sheet_name='Plates')
+    plate_map = {pn: pb for pn, pb in zip(dfp['Plate'],
+                                          dfp['Plate name'])}
+    dfm['barcode'] = dfm['barcode'].map(plate_map)
     return dfm
