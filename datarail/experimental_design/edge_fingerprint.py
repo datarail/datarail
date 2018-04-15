@@ -1,5 +1,5 @@
 import numpy as np
-import datarail.utils.plate_fcts as pltfct
+
 
 def _fingerprint_position(plate_dims):
 
@@ -73,7 +73,7 @@ def decode_fingerprint(pos_wells, plate_dims=[16,24]):
         pos_wells = sum(pos_wells, [])
 
     # convert to 'A01' from 'A1' if needed
-    pos_wells = [pltfct.well_as_2digit(w) for w in pos_wells]
+    pos_wells = ["%s%s" % (w[0], w[1:].zfill(2)) for w in pos_wells]
 
     bin_val = [ ''.join([chr(48+(w in pos_wells)) for w in wells[i]]) for i in range(0,len(wells)) ]
 
