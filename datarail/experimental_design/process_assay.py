@@ -319,7 +319,6 @@ def randomize_wells(df_plate,
             wells.append("%s%s" % (row, col))
 
     df_list = []
-    # for rep_num, plate in zip(randomization_scheme, plate_names):
     for plate_num in range(len(df_plate)):
         barcode = df_plate.loc[plate_num, 'barcode']
         cell_lines = df_plate.loc[plate_num, 'cell_line']
@@ -339,8 +338,9 @@ def randomize_wells(df_plate,
                                        exclude_outer=exclude_outer)
         df = randomize_per_line(dfw, randomization_num,
                                 exclude_outer, cell_lines)
-        if fingerprint_drug:
-            df_fp = assign_fingerprint_wells(barcode,
+        if 'fingerprint' in df_plate:
+            fd = df_plate.loc[plate_num, 'fingerprint']
+            df_fp = assign_fingerprint_wells(fd,
                                              fingerprint_drug,
                                              fingerprint_dose)
             df_fp.index = df_fp['well']
