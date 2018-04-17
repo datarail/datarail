@@ -37,3 +37,27 @@ def get_ccle_mutations(cell_line='A549_LUNG'):
     df['Entrez_Gene_Id'] = [re.search(">(.*?)</a", hs).group(1)
                             for hs in df.Entrez_Gene_Id.tolist()]
     return df
+
+
+def get_hmslincs_annotations(cell_lines):
+    """ Returns meetadata annotations for cell lines available
+    on LINCS DB
+    Parameters
+    ----------
+    cell_lines: list of str
+       Name of cell lines
+    Return
+    ------
+    dfs: pandas dataframe
+      dataframe of cell line annotations from HMS LINCS DB
+    for given list of cell lines
+    """
+    dfcell = pd.read_csv('http://lincs.hms.harvard.edu/db/'
+                         'cells/?search=&output_type=.csv')
+    dfcell.index = dfcell.Name.tolist()
+    relcols = ['HMS LINCS ID',  'Name',  'Alternative Names',
+               'LINCS ID', 'Organ', 'Cell Type', 'Known Mutations',
+               'Disease', 'Details of Disease',
+               'Growth Properties', 'Recommended Culture Conditions']
+    dfs = dfcell.loc[cell_lines, relcols]
+    return dfs
