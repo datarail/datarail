@@ -1,96 +1,38 @@
-# DATARAIL experimental design
+## Computational workflow for design of dose-response experiments
 
-Scripts for designing an experiment and recording metadata. This is not covering processing results or merging experimental design with data.
+### Installation
+* The repository can be installed from command line as shown below
+   ```
+   $ git clone https://github.com/datarail/datarail.git
+   ```
+* Add `datarail` to your `PYTHONPATH` to enable importing modules from any location on your local machine.
 
-### Functions for plate layouts
-High-level functions to design plate layouts. The treatments are constructed iteratively by adding conditions in a pandas table which is then laid on a plate (plate class).
-
-#### Add conditions to treatment table with cartesian combinations of drugs and their concentrations
-Inputs are:
-* list of drugs (n classes)
-* list of concentrations (list of 1 x n arrays)
-* ?flag to define the order of combinations (or the highest order)?
-This can be used for single agent dose-response, pairwise, and higher order combinations 
-
-#### Add a user-defined condition to treatment table 
-Input is:
-* list of tuples of drug class and concentration
-
-#### Lay out treatments on plate
-Inputs are:
-* flag on how to handle the controls (random, edge layout)
-* seed for randomization
-* number of randomized layouts
- 
-#### Add a reagent on specific wells
-Inputs are:
-* reagent (class)
-* concentration layout (2D array)
-
-#### Add a perturbation on specific wells
-Inputs are:
-* reagent (class)
-* concentration layout (2D array)
-
-### Functions for designing experiments and saving records
-High-level functions to desing experiments such as define treated plates, combine treatment plates and treated plates.
-
-### Additional functions
-
-#### Create instances of `Reagent` class
-
-#### Fetch reagent information from database
-Inputs are:
-* name or identifier
-* url/link to api, or flag for internal database
-
-
-### Classes
-Classes used in the experimental design.
-
-#### Reagent class
-Contains general information about a reagent (see also subclasses):
-* Display name (for user)
-* Name (as in reference database)
-* Database ID (including batch ID)
-* Source database (with url)
-* Comment (free text)
-
-##### Drug subclass
-Based on the class `Reagent`
-* Stock concentration
-* Vehicle (DMSO, aqueous, ...)
-
-##### Cell line subclass
-Based on the class `Reagent`
-* Passage number
-
-#### Perturbation class
-Generic class for information about experimental perturbations which are not a treatment
-such as cell line plated, seeding density, well volume.
-* Name
-* Layout (2D array with boolean, strings, numeric values, or reagent classes)
-* Comment
-
-#### Plate design class
-Contains the experimental design for a plate (xarray):
-* Design Name
-* Plate size
-* Treated wells
-* Matrix with vehicle
-* Treatments (numerical matrices with information from reagent class)
-* Perturbations (2D array with boolean, strings, numeric values, or reagent classes. The layer has a name and can have a comment)
-
-#### Treated plate class
-Contains the metadata for a plate used in an experiment:
-* Barcode
-* Timestamps for plating, treatment, fixing, ...
-
-#### Experiment class
-Contains an instance of an experiment (metadata, design, timestamp):
-* Mapping from treated plates to plate designs
-* Comments
-
-
-
+### Getting started
+* Set up the well and plate level metadata files as shown in `datarail/examples`
+* Start a Jupyter notebook or IPython session.
+* The layout of drugs on doses across  96/384 well plates can be constructed using the code below. The pandas dataframe `dfm` contains the desingned layout. Refer to `datarail/examples` for a detailed explanation with examples. 
+  ```
+  import pandas as pd
+  from datarail.experimental_design import process_assay as pa
+  dfp = pd.read_csv('plate_level_metadata.csv')
+  dfm = pa.randomize_wells(dfp)
+  dfm.to_csv('dose_response_layout_metadata.csv', index=False)
+  ```
+* The metadata file can be exported to a .hpdd file that can be used by the D300 printer. The stock concentraion for the drug also needs to be provided for each drug in the assay.
+  ```
+  from datarail.experimental_design import hpdd_utils as hu
+  hu.export_hpdd(dfm, dfs, 'dose_response_layout_metadata.hpdd')
+  ```
+* The layout can be visualized using the code below
+  ```
+  from datarail.experimental_design import plot_plate_layout as ppl
+  ppl.plot_summary(dfr, 'dose_response_layout_metadata.pdf')  
+  ```
+ * If the D300 software was used for designing the experiment, follow the steps below inorder to save the metadata file based on       `datarail` convention for subsequent downstream analysis.
+   - Open the `.xml` from D300 in Excel and save as a `.xlsx` file.
+   - Use the code below to save the metadata in a dataframe `dfm`
+   ```
+   from datarail.experimental_design import export_D300_xml as edx
+   dfm = edx.export2pd('D300_filename.xlsx')
+   ```
   
