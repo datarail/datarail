@@ -28,7 +28,7 @@
   from datarail.experimental_design import plot_plate_layout as ppl
   ppl.plot_summary(dfr, 'dose_response_layout_metadata.pdf')  
   ```
- * If the D300 file was used for designing the experiment, follow the steps below inorder to save the metadata file based on `datarail` convention for subsequent downstream analysis.
+ * If the D300 software was used for designing the experiment, follow the steps below inorder to save the metadata file based on `datarail` convention for subsequent downstream analysis.
  1. Open the `.xml` from D300 in Excel and save as a `.xlsx` file.
  2. Use the code below to save the metadata in a dataframe `dfm`
  ```
