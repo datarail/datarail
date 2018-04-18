@@ -25,6 +25,7 @@ def export2pd(filename):
        metadata file complying with datarail metadata conventions
     """
     dfi = pd.read_excel(filename, sheet_name='Tabular detail')
+    dfi = dfi.rename(columns={'Dispensed concentration': 'Dispensed conc.'})
     dfi = dfi[['Plate', 'Dispensed\nwell', 'Fluid name', 'Dispensed conc.']]
     dfi.columns = ['barcode', 'well', 'agent', 'concentration']
     dfi['concentration'] = dfi['concentration'].fillna(0)
