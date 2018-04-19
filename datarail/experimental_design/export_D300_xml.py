@@ -55,9 +55,9 @@ def export2pd(filename):
         dfm[concentration_columns] = dfm[concentration_columns].fillna(0)
         del dfm['concentration']
         for col in concentration_columns:
-            dfm[col] = [round(float(s), 2) for s in dfm[col].tolist()]
+            dfm[col] = [round(float(s), 4) for s in dfm[col].tolist()]
     else:
-        dfm['concentration'] = [round(float(s), 2)
+        dfm['concentration'] = [round(float(s), 4)
                                 for s in dfm.concentration.tolist()]
     dfp = pd.read_excel(filename, sheet_name='Plates')
     plate_map = {pn: pb for pn, pb in zip(dfp['Plate'],
