@@ -41,7 +41,8 @@ def _wellname_to_column(w):
     return int(w[1:]) - 1
 
 
-def export_hpdd(design, agents, filename, assay_volume=60, dmso_limit=0.01):
+def export_hpdd(design, agents, filename, assay_volume=60, dmso_limit=0.01,
+                exclude_outer=True):
     """Create a .hpdd format file from a drug treatment design table.
 
     Parameters
@@ -66,6 +67,9 @@ def export_hpdd(design, agents, filename, assay_volume=60, dmso_limit=0.01):
         place, in microliters.
     dmso_limit: Optional[float]
         Percent of DMSO allowed in each well after drug dispensing.
+    exclude_outer : bool
+       exludes outer wells (wells that are not being used as negative control)
+       from being back filled with DMSO.
 
     Notes
     -----
@@ -85,10 +89,12 @@ def export_hpdd(design, agents, filename, assay_volume=60, dmso_limit=0.01):
     yet, but again the HPDD software may be used for verification.
 
     """
-
     if 'plate' not in design:
-        design = design.copy()
-        design['plate'] = 'plate_1'
+        if 'barcode' in design:
+            design['plate'] = design['barcode']
+        else:
+            design = design.copy()
+            design['plate'] = 'plate_1'
     plate_names = design.plate.unique()
 
     plate_size = len(design) / len(plate_names)
@@ -103,8 +109,8 @@ def export_hpdd(design, agents, filename, assay_volume=60, dmso_limit=0.01):
 
     agent_columns = design.columns[design.columns.str.startswith('agent')]
     agent_column_suffixes = agent_columns.str.replace('agent', '')
-    design_agents = set(a for a in design.loc[:, agent_columns].values.flatten()
-                        if not ((np.isreal(a) and np.isnan(a)) or a == ''))
+    design_agents = [a for a in design[agent_columns].stack().unique()
+                     if a not in  ['', 'DMSO']]
     if sorted(design_agents) != sorted(agents.name.unique()):
         raise ValueError("Mismatch between design and agents tables")
 
@@ -186,6 +192,9 @@ def export_hpdd(design, agents, filename, assay_volume=60, dmso_limit=0.01):
     root.Backfills.append(backfill)
     backfill_wells = objectify.E.Wells()
     backfill.append(backfill_wells)
+    if exclude_outer:
+        design = design.copy()
+        design = design[~design['role'].isnull()]
     for p in plate_names:
         pi = plate_ids[p]
         for d in design.loc[design.plate == p].itertuples():
