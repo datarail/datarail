@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 import re
+import os
 
 
 def get_ccle_mutations(cell_line='A549_LUNG'):
@@ -40,7 +41,7 @@ def get_ccle_mutations(cell_line='A549_LUNG'):
 
 
 def get_hmslincs_annotations(cell_lines):
-    """ Returns meetadata annotations for cell lines available
+    """ Returns metadata annotations for cell lines available
     on LINCS DB
     Parameters
     ----------
@@ -60,4 +61,28 @@ def get_hmslincs_annotations(cell_lines):
                'Disease', 'Details of Disease',
                'Growth Properties', 'Recommended Culture Conditions']
     dfs = dfcell.loc[cell_lines, relcols]
+    return dfs
+
+
+def get_ccle_cnv(cell_lines, genes):
+    """Returns copy number variations from CCLE for given list
+    of cell lines and genes.
+    Parameters
+    ----------
+    cell_lines : list of str
+         cell_lines of interest.
+         Naming convention should be consistent with CCLE.
+    genes : list of str
+         genes of interest (gene symbols).
+    Returns
+    -------
+    dfs : pandas datafame
+         data table of cnv for given list of cell lines and genes.
+    """
+    cla_path = os.path.dirname(os.path.abspath(__file__))
+    cnv_file_path = os.path.join(cla_path,
+                                 'CCLE_copynumber_byGene_2013-12-03.txt')
+    dfcnv = pd.read_table(cnv_file_path,
+                          index_col=0)
+    dfs = dfcnv.loc[genes, cell_lines].copy()
     return dfs
