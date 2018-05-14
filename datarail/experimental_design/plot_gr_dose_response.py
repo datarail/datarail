@@ -37,7 +37,7 @@ def plot_dr(df_grvalues, df_grmetric):
     g.set(xscale='log')
     g = (g.map(plt.plot, "concentration", "GRvalue", marker='.'))
     g.set_titles(col_template='{col_name}')
-    g.set_axis_labels(x_var='Concentration (uM)', y_var='GR value')
+    g.set_axis_labels(x_var=u'concentration (\u03bcM)', y_var='GR value')
     # g.add_legend()
     labels = hue_order
     colors = sns.color_palette("husl", len(labels)).as_hex()
