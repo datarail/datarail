@@ -7,6 +7,17 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 def plot_dose_response(df_grvalues, df_grmetrics,
                        figname='dose_response.pdf'):
+    """Plots dose response summary figures, one timepoint per pdf page.
+    
+    Parameters
+    ----------
+    df_grvalues : pandas dataframe
+       GR values for each condition
+    df_grmetrics : pandas dataframe
+       GR metrics summary for each condition
+    figname : Optional[str]
+       Name of pdf file for saving the output.
+    """
     plt.ioff()
     timepoints = df_grvalues.timepoint.unique()
     pdf_pages = PdfPages(figname)
@@ -19,6 +30,20 @@ def plot_dose_response(df_grvalues, df_grmetrics,
 
 
 def plot_dr(df_grvalues, df_grmetric):
+    """Plots dose response summary figure for each timepoint.
+
+    Parameters
+    ----------
+    df_grvalues : pandas dataframe
+       GR values for each condition
+    df_grmetrics : pandas dataframe
+       GR metrics summary for each condition
+
+    Returns
+    -------
+    g : seaborn figure object
+
+    """
     agents = df_grvalues.agent.unique()
     col_wrap = np.min((5,
                        np.max((3, int(round(np.sqrt(len(agents))))))
@@ -62,6 +87,19 @@ def plot_dr(df_grvalues, df_grmetric):
 
 
 def plot_gr50(dfgr, ax, labels, colors):
+    """Plots GR50 for each drug as vertical line on X-axis.
+
+    Parameters
+    ----------
+    dfgr : pandas dataframe
+       GR metrics summary for each condition
+    ax : subplot figure object
+    labels : list of str
+        List of unique cell lines
+    colors : annary of str
+        List of unique colors for each cell line. 
+        Should be the same length as labels
+    """
     drug = ax.get_title()
     # print(drug)
     ylim = ax.get_ylim()
@@ -75,6 +113,19 @@ def plot_gr50(dfgr, ax, labels, colors):
 
 
 def plot_grmax(dfgr, ax, labels, colors):
+    """Plots GRmax for each drug as vertical line on Y-axis.
+
+    Parameters
+    ----------
+    dfgr : pandas dataframe
+       GR metrics summary for each condition
+    ax : subplot figure object
+    labels : list of str
+        List of unique cell lines
+    colors : annary of str
+        List of unique colors for each cell line. 
+        Should be the same length as labels
+    """
     drug = ax.get_title()
     ylim = ax.get_ylim()
     xlim = ax.get_xlim()
