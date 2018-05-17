@@ -5,7 +5,10 @@
    ```
    $ git clone https://github.com/datarail/datarail.git
    ```
-* Add `datarail` to your `PYTHONPATH` to enable importing modules from any location on your local machine.
+* To install dependencies and enable importing modules from any location on your local machine, `cd` into the `datarail` folder, followed by the command below.
+   ```
+   $ pip install -e .
+   ```
 
 ### Getting started
 * Set up the well and plate level metadata files as shown in `datarail/examples`
