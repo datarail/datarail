@@ -89,6 +89,7 @@ def export_hpdd(design, agents, filename, assay_volume=60, dmso_limit=0.01,
     yet, but again the HPDD software may be used for verification.
 
     """
+    design = design.replace(['DMSO'], '')
     if 'plate' not in design:
         if 'barcode' in design:
             design['plate'] = design['barcode']
