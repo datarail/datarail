@@ -42,8 +42,8 @@ def merge_well_level_metadata(dfc, dfmeta):
     dfc.index = ["%s_%s" % (r, w) for r, w in
                  zip(dfc['barcode'], dfc['well'])]
     dfc2 = pd.concat([dfc, dfm], axis=1)
-    dfc3 = dfc2.dropna(subset=['Result'])
-    return dfc3
+    # dfc3 = dfc2.dropna(subset=['Result'])
+    return dfc2
 
 
 def remove_duplicate_wells(dfo):
