@@ -58,26 +58,65 @@ def remove_duplicate_wells(dfo):
     return dfo
 
 
-def generate_GRinput(df, counts_column='cell_count'):
+def generate_GRinput(df, counts_column='cell_count',
+                     time0_plate=True, mean=True):
     dft = df[df['role'] == 'treatment'].copy()
     df_counts = dft.copy()
     cell_lines = dft['cell_line'].unique()
-    dc1 = {}
-    for line in cell_lines:
-        dfc = df[df['cell_line'] == line].copy()
-        time0_ctrl = dfc[dfc['timepoint'] == 'time0_ctrl'][
-            counts_column].mean()
-        dc1[line] = time0_ctrl
+    if time0_plate:
+        time0_dc = {}
+        for line in cell_lines:
+            dfc = df[df['cell_line'] == line].copy()
+            time0_ctrl = dfc[dfc['timepoint'] == 'time0_ctrl'][
+                counts_column].mean()
+            time0_dc[line] = time0_ctrl
+        df_counts['cell_count__time0'] = [time0_dc[line] for line in
+                                          df_counts['cell_line'].tolist()]
+        counts_col = ['cell_count', 'cell_count__ctrl', 'cell_count__time0']
+    else:
+        counts_col = ['cell_count', 'cell_count__ctrl']
     dc2 = df[df.role == 'negative_control'].groupby(
         ['cell_line', 'timepoint'])['cell_count'].mean()
     df_counts['cell_count__ctrl'] = [dc2.loc[c, t] for c, t in
                                      zip(df_counts['cell_line'],
                                          df_counts['timepoint'])]
-    df_counts['cell_count__time0'] = [dc1[line] for line in
-                                      df_counts['cell_line'].tolist()]
     df_counts = df_counts.loc[:, ~df_counts.columns.duplicated()]
-    df_counts_mean = df_counts.groupby(['cell_line', 'agent',
-                                        'concentration', 'timepoint'])[
-        ['cell_count__ctrl', 'cell_count__time0', 'cell_count']].apply(np.mean)
-    df_counts_mean = df_counts_mean.reset_index()
-    return df_counts_mean
+
+    agent_cols = [a for a in df_counts.columns.tolist()
+                  if a.startswith('agent')]
+    concentration_cols = [c for c in df_counts.columns.tolist()
+                          if c.startswith('concentration')]
+    df_counts[agent_cols] = df_counts[agent_cols].where(
+        pd.notnull(df_counts), '')
+    df_counts[concentration_cols] = df_counts[concentration_cols].where(
+        pd.notnull(df_counts), 0)
+    df_counts['replicate'] = df_counts.groupby(['cell_line'] + agent_cols +
+                                               concentration_cols)[
+        'cell_count'].transform(lambda x: pd.factorize(x)[0]+1)
+    df_counts['replicate'] = df_counts['replicate'].replace([0], np.nan)
+
+    if mean:
+        df_counts_mean = df_counts.groupby(['cell_line', 'agent',
+                                            'concentration', 'timepoint'])[
+                                                counts_col].apply(np.mean)
+        df_counts_mean = df_counts_mean.reset_index()
+        return df_counts_mean
+    else:
+        return df_counts
+
+
+def make_long_table(output_file, barcode, plate_dims=[16, 24]):
+    """Use with readouts that are in plate layout format
+    eg:- CTG
+    """
+    df = pd.read_excel(output_file)
+    df = df.iloc[:plate_dims[0], :plate_dims[1]]
+    columns = df.columns.tolist()
+    df['Row'] = df.index.tolist()
+    dfp = pd.melt(df, id_vars=['Row'], value_vars=columns)
+    dfp['well'] = ["%s%02d" % (r, c) for r, c
+                   in zip(dfp.Row.tolist(), dfp.variable.tolist())]
+    dfp = dfp.rename(columns={'value': 'cell_count'})
+    dfp = dfp[['well', 'cell_count']]
+    dfp['barcode'] = [barcode]*len(dfp)
+    return dfp
