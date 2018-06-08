@@ -94,11 +94,11 @@ def generate_GRinput(df, counts_column='cell_count',
                                                concentration_cols)[
         'cell_count'].transform(lambda x: pd.factorize(x)[0]+1)
     df_counts['replicate'] = df_counts['replicate'].replace([0], np.nan)
-    df_counts['agent'] = df_counts[agent_cols].apply(lambda x: '; '.join(
-        x[x.notnull()]), axis=1)
-    # dfc['concentration'] = dfc['concentration1']
-    df_counts['concentration'] = df_counts[concentration_cols].astype(str).apply(
-         lambda x: '; '.join(x[x.notnull()]), axis=1)
+    if len(agent_cols) > 1:
+        df_counts['agent'] = df_counts[agent_cols].apply(lambda x: '; '.join(
+            x[x.notnull()]), axis=1)
+        df_counts['concentration'] = df_counts[concentration_cols].astype(str).apply(
+            lambda x: '; '.join(x[x.notnull()]), axis=1)
 
     if mean:
         df_counts_mean = df_counts.groupby(['cell_line', 'agent',
