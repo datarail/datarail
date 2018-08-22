@@ -36,14 +36,19 @@ def merge_plate_level_metadata(dfo, dfp, common_identifier='barcode'):
 
 
 def merge_well_level_metadata(dfc, dfmeta):
+    dfc['well'] = ["%s%s" % (s[0], s[1:].zfill(2))
+                   for s in dfc.well.tolist()]
+    dfc[['barcode', 'timestamp']] = dfc.Result.str.split(
+        ' > ', expand=True)
     dfm = dfmeta.copy()
     dfm.index = ["%s_%s" % (r, w) for r, w in
                  zip(dfm['barcode'], dfm['well'])]
     dfc.index = ["%s_%s" % (r, w) for r, w in
                  zip(dfc['barcode'], dfc['well'])]
-    dfc2 = pd.concat([dfc, dfm], axis=1)
+    dfc2 = pd.concat([dfc, dfm], axis=1, sort=False)
+    dfc3 = dfc2.loc[:, ~dfc2.columns.duplicated()].copy()
     # dfc3 = dfc2.dropna(subset=['Result'])
-    return dfc2
+    return dfc3
 
 
 def remove_duplicate_wells(dfo):
@@ -125,3 +130,14 @@ def make_long_table(output_file, barcode, plate_dims=[16, 24]):
     dfp = dfp[['well', 'cell_count']]
     dfp['barcode'] = [barcode]*len(dfp)
     return dfp
+
+
+def get_fraction_dead(dfo,
+                      dead_cell_columns,
+                      total_cell_columns):
+    """
+    """
+    dfo2 = dfo.copy()
+    dfo2['frac_dead'] = dfo2[dead_cell_columns].sum(axis=1).div(
+        dfo2[total_cell_columns].sum(axis=1))
+    return dfo2
