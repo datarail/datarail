@@ -138,6 +138,6 @@ def get_fraction_dead(dfo,
     """
     """
     dfo2 = dfo.copy()
-    dfo2['frac_dead'] = dfo2[dead_cell_columns].sum(axis=1).div(
+    dfo2['fraction_dead'] = dfo2[dead_cell_columns].sum(axis=1).div(
         dfo2[total_cell_columns].sum(axis=1))
     return dfo2
