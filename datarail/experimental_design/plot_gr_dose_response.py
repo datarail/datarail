@@ -137,3 +137,78 @@ def plot_grmax(dfgr, ax, labels, colors):
         ax.set_ylim(ylim)
         xlim = ax.get_xlim()
         ax.set_xlim(xlim)
+
+
+
+
+def plot_fraction_dead(df_fd, figname='fraction_dead.pdf'):
+    """Plots fraction dead figures, one timepoint per pdf page.
+    
+    Parameters
+    ----------
+    df_fd : pandas dataframe
+       fraction dead  values for each condition
+    figname : Optional[str]
+       Name of pdf file for saving the output.
+    """
+    plt.ioff()
+    timepoints = df_fd.timepoint.unique()
+    pdf_pages = PdfPages(figname)
+    for tp in timepoints:
+        dft = df_fd[df_fd.timepoint == tp]
+        g = plot_fd(dft)
+        pdf_pages.savefig(g.fig)
+    pdf_pages.close()
+
+
+
+def plot_fd(df_fd):
+    """Plots fraction dead summary figure for each timepoint.
+    Parameters
+    ----------
+    df_fd : pandas dataframe
+       Fraction dead values for each condition
+    Returns
+    -------
+    g : seaborn figure object
+    """
+    df_fd = df_fd.groupby(['cell_line', 'agent', 'concentration', 'timepoint'],
+                       as_index=False)['fraction_dead'].mean().copy()
+    agents = df_fd.agent.unique()
+    col_wrap = np.min((5,
+                       np.max((3, int(round(np.sqrt(len(agents))))))
+                       ))
+    num_rows = np.ceil(len(agents)/col_wrap)
+    subplot_height = np.min((2, round(16 / num_rows)))
+    hue_order = df_fd.cell_line.unique()[::-1]
+
+    g = sns.FacetGrid(df_fd, col='agent', hue='cell_line',
+                      # row='timepoint',
+                      hue_order=hue_order, palette='husl',
+                      col_wrap=col_wrap,
+                      size=subplot_height, aspect=1.5,  # margin_titles=True,
+                      sharey=True, sharex=False)
+    timepoint = df_fd.timepoint.unique()[0]
+    g.set(xscale='log')
+    g = (g.map(plt.plot, "concentration", "fraction_dead", marker='.'))
+    g.set_titles(col_template='{col_name}')
+    g.set_axis_labels(x_var=u'concentration (\u03bcM)', y_var='fraction dead')
+    # g.add_legend()
+    labels = hue_order
+    colors = sns.color_palette("husl", len(labels)).as_hex()
+    handles = [patches.Patch(color=col, label=lab) for col, lab
+               in zip(colors, labels)]
+    xticks = [1e-3, 1e-1, 1e+1]
+    for ax in g.axes.reshape(-1):
+        xlim = ax.get_xlim()
+        ylim_max = ax.get_ylim()[1]
+        ax.set_xticks(xticks)
+        ax.tick_params(axis='both', which='major', labelsize=6)
+        ax.set_ylim((0, ylim_max))
+    plt.subplots_adjust(hspace=0.7, wspace=0.3, bottom=0.1,
+                        left=0.1, right=0.6)
+    plt.legend(handles=handles, title='cell line (%s hrs)' % timepoint,
+               loc='center right',
+               bbox_to_anchor=(col_wrap, 1.2))
+    return g
+     
