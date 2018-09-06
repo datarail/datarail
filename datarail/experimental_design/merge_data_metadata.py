@@ -135,7 +135,18 @@ def make_long_table(output_file, barcode, plate_dims=[16, 24]):
 def get_fraction_dead(dfo,
                       dead_cell_columns,
                       total_cell_columns):
-    """
+    """ Appends column for fraction of dead cells
+    Parameters
+    ----------
+    dfo : pandas dataframe
+    dead_cell_columns : list of str
+        list of column names corresponding to dead cells
+    total_cell_columns : list of str
+        list of column names corresponding to total cell counts
+
+    Returns
+    -------
+    dfo2 : pandas dataframe    
     """
     dfo2 = dfo.copy()
     dfo2['fraction_dead'] = dfo2[dead_cell_columns].sum(axis=1).div(
