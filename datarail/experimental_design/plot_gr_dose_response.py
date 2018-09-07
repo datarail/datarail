@@ -3,6 +3,9 @@ import numpy as np
 import seaborn as sns
 import matplotlib.patches as patches
 from matplotlib.backends.backend_pdf import PdfPages
+import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 
 
 def plot_dose_response(df_grvalues, df_grmetrics,
