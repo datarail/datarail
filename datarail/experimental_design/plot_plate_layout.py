@@ -6,6 +6,9 @@ from matplotlib.colors import LogNorm
 import matplotlib.gridspec as gridspec
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.backends.backend_pdf import PdfPages
+import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 
 
 def plot_feature(df, plate=None, feature='cell_line', ax=None):
