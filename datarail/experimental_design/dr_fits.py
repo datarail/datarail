@@ -1,6 +1,10 @@
 import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
+
 
 
 def biphasic_fit_function(x, a, b, c, d, e, f):
@@ -108,20 +112,20 @@ def fit(xdata, ydata, cap=1, extrapolrange=10, ax=None, fig_title=None):
     popt_sig2[1] = 10 ** -popt_sig2[1]
     
     if sig1_rsquared > sig2_rsquared:
-        print('sig1')
+        print('1st phase sigmoidal fit is the better of the 2 sigmoidal fits ')
         best_sig_fit = yfit_sig1
         sigmoidal_params = np.array(list(popt_sig1)+[1, -np.inf, .01])
     else:
         best_sig_fit = yfit_sig2
-        print('sig2')
+        print('2nd phase sigmoidal fit is the better of the 2 sigmoidal fits')
         sigmoidal_params = np.array([1, -np.inf, .01] + list(popt_sig2))
 
     # Plot data, biphasic and best sigmoidal fits
     # -------------------------------------------
     if ax is not None:
-        ax.semilogx(xdata, ydata, 'ob')    
-        ax.semilogx(xc, yfit_bp, 'lightblue')
-        ax.semilogx(xc, best_sig_fit, '-k')
+        ax.semilogx(xdata, ydata, 'ob', label='Measured GR value')    
+        ax.semilogx(xc, yfit_bp, 'lightblue', label='Biphasic fit')
+        ax.semilogx(xc, best_sig_fit, '-k', label='Best sigmoidal fit')
         ax.set_ylim((-0.5, 1))
         xlim = (10 ** cmin, 10 ** cmax)
         ax.set_xlim(xlim)
