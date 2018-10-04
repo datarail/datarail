@@ -1,0 +1,8 @@
+language: python
+python:
+  - "2.7"
+  - "3.6"
+sudo: false
+dist: trusty
+install: pip install numpy scipy matplotlib pandas==0.22 seaborn scikit_learn requests statsmodel lxml pytest
+script: pytest tests
