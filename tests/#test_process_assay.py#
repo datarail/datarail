@@ -1,0 +1,9 @@
+from datarail.experimental_design import process_assay as pa
+
+
+def test_get_boundary_cell_count():
+    bc = pa.get_boundary_cell_count([16, 24], exclude_outer=1)
+    assert bc == 76
+
+
+    
