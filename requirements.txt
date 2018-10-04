@@ -3,6 +3,5 @@ numpy
 scipy
 pandas==0.22
 seaborn
-statsmodels
 scikit_learn
 lxml

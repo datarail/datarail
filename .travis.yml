@@ -4,5 +4,5 @@ python:
   - "3.6"
 sudo: false
 dist: trusty
-install: pip install numpy scipy matplotlib pandas==0.22 seaborn scikit_learn requests statsmodel lxml pytest
+install: pip install numpy scipy matplotlib pandas==0.22 seaborn scikit_learn requests lxml pytest
 script: pytest tests
