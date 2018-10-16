@@ -66,6 +66,7 @@ large_corpus.rdf
 *.bel
 *.json
 *.bson
+*.tsv
 
 # Documents, graphs, images
 *.pdf
@@ -86,3 +87,6 @@ large_corpus.rdf
 cover
 setuptools*.zip
 .DS_Store
+
+# Developper associated files
+jake*.*

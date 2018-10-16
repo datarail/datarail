@@ -32,7 +32,7 @@ def plot_dose_response(df_grvalues, df_grmetrics,
     pdf_pages.close()
 
 
-def plot_dr(df_grvalues, df_grmetric):
+def plot_dr(df_grvalues, df_grmetric, time_col='timepoint', errbar=None, size_override=None):
     """Plots dose response summary figure for each timepoint.
 
     Parameters
@@ -52,18 +52,21 @@ def plot_dr(df_grvalues, df_grmetric):
                        np.max((3, int(round(np.sqrt(len(agents))))))
                        ))
     num_rows = np.ceil(len(agents)/col_wrap)
-    subplot_height = np.min((2, round(16 / num_rows)))
+    if size_override is None:
+        subplot_height = np.min((2, round(16 / num_rows)))
+    else:
+        subplot_height = size_override
     hue_order = df_grvalues.cell_line.unique()[::-1]
 
     g = sns.FacetGrid(df_grvalues, col='agent', hue='cell_line',
                       # row='timepoint',
                       hue_order=hue_order, palette='husl',
                       col_wrap=col_wrap,
-                      size=subplot_height, aspect=1.5,  # margin_titles=True,
+                      height=subplot_height, aspect=1.5,  # margin_titles=True,
                       sharey=True, sharex=False)
-    timepoint = df_grvalues.timepoint.unique()[0]
+    timepoint = df_grvalues[time_col].unique()[0]
     g.set(xscale='log')
-    g = (g.map(plt.plot, "concentration", "GRvalue", marker='.'))
+    g = g.map(sns.lineplot, "concentration", "GRvalue", err_style=errbar, ci=95, marker='.')
     g.set_titles(col_template='{col_name}')
     g.set_axis_labels(x_var=u'concentration (\u03bcM)', y_var='GR value')
     # g.add_legend()
