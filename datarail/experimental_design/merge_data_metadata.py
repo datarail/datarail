@@ -38,8 +38,9 @@ def merge_plate_level_metadata(dfo, dfp, common_identifier='barcode'):
 def merge_well_level_metadata(dfc, dfmeta):
     dfc['well'] = ["%s%s" % (s[0], s[1:].zfill(2))
                    for s in dfc.well.tolist()]
-    dfc[['barcode', 'timestamp']] = dfc.Result.str.split(
-        ' > ', expand=True)
+    if 'Result' in dfc.columns.tolist():
+        dfc[['barcode', 'timestamp']] = dfc.Result.str.split(
+            ' > ', expand=True)
     dfm = dfmeta.copy()
     dfm.index = ["%s_%s" % (r, w) for r, w in
                  zip(dfm['barcode'], dfm['well'])]
