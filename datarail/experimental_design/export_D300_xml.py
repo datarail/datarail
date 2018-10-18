@@ -35,8 +35,11 @@ def export2pd(filename):
     dfm = dfm.reset_index()
     dfm['agent'] = [s.replace(',DMSO normalization', '')
                     for s in dfm.agent.tolist()]
-    dfm['concentration'] = [s.replace(',0.0', '') for s in
-                            dfm.concentration.tolist()]
+    dfm['agent'] = [s.replace(',a+Tw normalization', '')
+                    for s in dfm.agent.tolist()]
+    dfm['concentration'] = [','.join(c.split(',')[:len(a.split(','))])
+                            for a, c  in zip(dfm.agent, dfm.concentration)]
+    
     dfm['agent'] = [s.replace('DMSO normalization', 'DMSO')
                     for s in dfm.agent.tolist()]
     dfm['role'] = ['negative_control' if s == 'DMSO' else 'treatment'
