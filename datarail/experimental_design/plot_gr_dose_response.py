@@ -32,7 +32,7 @@ def plot_dose_response(df_grvalues, df_grmetrics,
     pdf_pages.close()
 
 
-def plot_dr(df_grvalues, df_grmetric, time_col='timepoint', errbar=None, size_override=None):
+def plot_dr(df_grvalues, df_grmetric, time_col='timepoint', errbar='bars', size_override=None):
     """Plots dose response summary figure for each timepoint.
 
     Parameters
@@ -66,7 +66,7 @@ def plot_dr(df_grvalues, df_grmetric, time_col='timepoint', errbar=None, size_ov
                       sharey=True, sharex=False)
     timepoint = df_grvalues[time_col].unique()[0]
     g.set(xscale='log')
-    g = g.map(sns.lineplot, "concentration", "GRvalue", err_style=errbar, ci=95, marker='.')
+    g = g.map(sns.lineplot, "concentration", "GRvalue", err_style=errbar, ci='sd', marker='.')
     g.set_titles(col_template='{col_name}')
     g.set_axis_labels(x_var=u'concentration (\u03bcM)', y_var='GR value')
     # g.add_legend()
