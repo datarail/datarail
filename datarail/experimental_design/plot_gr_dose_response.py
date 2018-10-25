@@ -32,7 +32,7 @@ def plot_dose_response(df_grvalues, df_grmetrics,
     pdf_pages.close()
 
 
-def plot_dr(df_grvalues, df_grmetric, time_col='timepoint', errbar=None, size_override=None):
+def plot_dr(df_grvalues, df_grmetric, time_col='timepoint', errbar='bars', size_override=None):
     """Plots dose response summary figure for each timepoint.
 
     Parameters
