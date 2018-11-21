@@ -24,7 +24,7 @@ def get_boundary_cell_count(plate_dims, exclude_outer=1):
     return boundary_cell_count
 
 
-def set_dosing(max_dose, num_doses, num_replicates=1):
+def set_dosing(max_dose, num_doses, num_replicates=1, step='half-log'):
     """ returns list of doses (micromolar) at half log intervals
     Parameters
     ----------
@@ -36,12 +36,24 @@ def set_dosing(max_dose, num_doses, num_replicates=1):
         lowest moving to higher doses.
     num_replicates: int
         number of times the dose range is replicated on the plate
+    step : str
+        interval between doses. Default is 'half-log'. Options include
+        'half-log', 'onethird-log', 'quarter-log', '1:n' where n is the
+        dilution fold.
 
     Returns:
     -------
     dose_range: list of floats
     """
-    dose_range = max_dose * 1e-4 * np.logspace(0, 4, 9)
+    if step == 'half-log':
+        dose_range = max_dose * 1e-4 * np.logspace(0, 4, 9)
+    elif step == 'onethird-log':
+        dose_range = max_dose * 1e-4 * np.logspace(0, 4, 7)
+    elif step == 'quarter-log':
+        dose_range = max_dose * 1e-4 * np.logspace(0, 4, 5)
+    else:
+        base_dilution = int(step.split(':')[1])
+        dose_range = [max_dose/(base_dilution ** x) for x in range(num_doses)]        
     dose_range = [round(s, 4) for s in dose_range]
     dose_range = sorted(list(set(dose_range)))[::-1]
     dose_range = dose_range[:num_doses]
@@ -108,8 +120,9 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
        'treatment', positive_control', 'negative_control', or 'fingerprint'
     - 'num_replicates' column listing number of times a drug's
        dosing scheme is replicated on the same plate
-    - 'exclude_doses' column (OPTIOINAL) listing doses to be excluded
+    - 'exclude_doses' column (OPTIONAL) listing doses to be excluded
        for a given drug
+    - 'step' column listing option for interval between doses.
 
     Parameters:
     ----------
@@ -142,10 +155,14 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
             'num_replicates'].values[0]
 #        exclude_doses = df_tr[df_tr.agent == drug][
 #            'exclude_doses'].values[0]
+        if 'dose_interval' in df_tr.columns.tolist():
+            step = df_tr[df_tr.agent == drug]['dose_interval'].values[0]
+        else:
+            step = 'half-log'
         if len(max_dose) == 1:
             max_dose = max_dose[0]
             num_doses = num_doses[0]
-            dose_range = set_dosing(max_dose, num_doses, num_replicates)
+            dose_range = set_dosing(max_dose, num_doses, num_replicates, step=step)
             # if exclude_doses == '':
             #     dose_range = dose_range[:num_doses]
             # else:
