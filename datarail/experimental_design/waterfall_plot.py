@@ -6,23 +6,31 @@ import numpy as np
 
 def add_median_std(data, y_gr_col='GRmax', custom_grouping=None, drug_col='agent',
                    time_col='time', cell_col='cell_line'):
-    '''
+    """
     Add calculate median and standard deviation from replicate GR values outputeed by the gr50 package.
     Parameters
-    ========
-    data: pd.DataFrame, gr50 output.
-    (drug, dose, time, cell, GRvalue)_col: str, column names for metadata.
-    custom_grouping: list, a list of column names that combined identifies each treatment condition.
-    y_gr_col: str, column name for GR metric.
-    (drug, time, and cell)_col: str, columns names for drug_name, treatment duration or cellline.
+    ----------
+    data : pandas dataframe 
+        gr50 output.(drug, dose, time, cell, GRvalue)_col: str, column names for metadata.
+    custom_grouping : list
+        a list of column names that combined identifies each treatment condition.
+    y_gr_col : str
+         column name for GR metric.
+    drug_col: str
+          column name for drug name.
+    time_col : str
+          column name for treatment duration.
+    cell_col : str
+          column name for cell line information.
 
     Returns
-    ========
-    processed_data: pd.DataFrame, re-formmated data sorted by median 'y_gr_col' descendingly, indecies as ranks.
+    -------
+    processed_data: pandas dataFrame
+        re-formmated data sorted by median 'y_gr_col' descendingly, indecies as ranks.
         Includes two columns 'median_GR' for median GR metric and 'std_GR' for standard deviation
         calculated from replicates.
 
-    '''
+    """
     if custom_grouping is None:
         group_by = [drug_col, time_col, cell_col]
     else:
@@ -40,30 +48,41 @@ def add_median_std(data, y_gr_col='GRmax', custom_grouping=None, drug_col='agent
 def waterfall_plot(data, x_color_sep='cell_line', y_gr_col='GRmax', title_col='agent',
                    saturation_sep=None, figname=None, figsize=(16, 9), drug_col='agent',
                    time_col='time', cell_col='cell_line', ax=None, **kwargs):
-    '''
+    """
     Make waterfall plot from gr50 output data or processed data from gr50 output.
     This plot can visulize two different types of metadata such as drug vs time,
     or drug vs cellline.Groups data based on 'x_color_sep' value, and saturation of
     each bar can be modified to reflect a secondary metadata.
 
     Parameters
-    ========
-    data: pd.DataFrame, processed data from gr50 output.
-    x_color_sep: str, column name for X-axis which separate the primary condition.
-    y_gr_col: str, column name for the GR metric values.
-    saturation_sep: str or None, column name in the data which defined bar saturation level.
-    figname: str or None, output figure name, if None, show figure instead.
-    figsize: tuple of integers, width and height of figure.
-    ax: matplotlib.Axes object, axes which the figure to be constructed on.
-    title_col: str, column name where figure title will be assumed.
-    (drug, dose, time, cell, GRvalue)_col: str, column names for metadata.
-    y_gr_col: str, column name for GR metric.
-    (drug, time, and cell)_col: str, columns names for drug_name, treatment duration or cellline.
+    ----------
+    data : pandas dataframe
+         processed data from gr50 output.
+    x_color_sep : Optional[str]
+         column name for X-axis which separate the primary condition. Default is cell_line
+    y_gr_col : str
+         column name for the GR metric values.
+    saturation_sep : Optional[str]
+          column name in the data which defined bar saturation level. Default None
+    figname : Optional[str]
+           output figure name, if None, show figure instead. Default None
+    figsize : Optional[tuple of ints]
+            width and height of figure. Default is (16, 9)
+    ax : matplotlib.Axes object
+              axes which the figure to be constructed on.
+    title_col: Optionl[str]
+         column name where figure title will be assumed. Default is agent
+    drug_col: str
+          column name for drug name.
+    time_col : str
+          column name for treatment duration.
+    cell_col : str
+          column name for cell line information.
 
     Returns
-    ========
+    -------
 
-    '''
+    """
     # check if data is already padded median and std values, if not get those
     # values
     ax = ax or plt.gca()
@@ -126,32 +145,49 @@ def waterfall_plot(data, x_color_sep='cell_line', y_gr_col='GRmax', title_col='a
 def waterfall_plot_panel(data, x_color_sep='cell_line', y_gr_col='GRmax', row_by='agent', col_by=None,
                          saturation_sep=None, figname=None, figsize=(16, 9), drug_col='agent', time_col='time',
                          cell_col='cell_line', **kwargs):
-    '''
+    """
     Make a panel of waterfall plot from gr50 output data or processed data from gr50 output.
     Panels can be separated by at most two types of metadata into rows and columns.
 
     Parameters
-    ========
-    data: pd.DataFrame, processed data from gr50 output.
-    x_color_sep: str, column name for X-axis which separate the primary condition.
-    y_gr_col: str, column name for the GR metric values.
-    row_by: str, column name that separate waterfall plots by rows.
-    col_by=None: str, column name that separate waterfall plots by columns. If None, plots will not be
+    ----------
+    data : pandas dataFrame
+          processed data from gr50 output.
+    x_color_sep : str
+           column name for X-axis which separate the primary condition.
+    y_gr_col : str
+           column name for the GR metric values.
+    row_by : str
+            column name that separate waterfall plots by rows.
+    col_by : str
+          column name that separate waterfall plots by columns. If None, plots will not be
         separated by columns, and bars will be stratified by the 'saturation_sep' parameter.
-    saturation_sep: str or None, column name in the data which defined bar saturation level.
-    figname: str or None, output figure name, if None, show figure instead.
-    figsize: tuple of integers, width and height of figure.
-    ax: matplotlib.Axes object, axes which the figure to be constructed on.
-    title_col: str, column name where figure title will be assumed.
-    (drug, dose, time, cell, GRvalue)_col: str, column names for metadata.
-    custom_grouping: list, a list of column names that combined identifies each treatment condition.
-    y_gr_col: str, column name for GR metric.
-    (drug, time, and cell)_col: str, columns names for drug_name, treatment duration or cellline.
+    saturation_sep : Optional[str]
+         column name in the data which defined bar saturation level. Default is None
+    figname : Optional[str]
+          output figure name, if None, show figure instead.
+    figsize : tuple of integers, width and height of figure.
+    ax : matplotlib.Axes object
+         axes which the figure to be constructed on.
+    title_col : str
+         column name where figure title will be assumed.
+    (drug, dose, time, cell, GRvalue)_col: str
+          column names for metadata.
+    custom_grouping : list
+           a list of column names that combined identifies each treatment condition.
+    y_gr_col : str
+           column name for GR metric.
+    drug_col : str
+          column name for drug name.
+    time_col : str
+          column name for treatment duration.
+    cell_col : str
+          column name for cell line information.
 
     Returns
-    ========
+    -------
     fig, matplotlib.pyplot.figure object. 
-    '''
+    """
 
     if np.sum(['median' in x for x in data.columns]) == 0:
         data = add_median_std(data, **kwargs)
