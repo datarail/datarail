@@ -194,7 +194,7 @@ def plot_fd(df_fd, y_col='fraction_dead'):
                       # row='timepoint',
                       hue_order=hue_order, palette='husl',
                       col_wrap=col_wrap,
-                      size=subplot_height, aspect=1.5,  # margin_titles=True,
+                      height=subplot_height, aspect=1.5,  # margin_titles=True,
                       sharey=True, sharex=False)
     timepoint = df_fd.timepoint.unique()[0]
     g.set(xscale='log')
