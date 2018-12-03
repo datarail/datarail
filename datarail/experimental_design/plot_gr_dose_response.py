@@ -147,7 +147,7 @@ def plot_grmax(dfgr, ax, labels, colors):
 
 
 
-def plot_fraction_dead(df_fd, figname='fraction_dead.pdf'):
+def plot_fraction_dead(df_fd, y_col='fraction_dead', figname=None):
     """Plots fraction dead figures, one timepoint per pdf page.
     
     Parameters
@@ -157,18 +157,20 @@ def plot_fraction_dead(df_fd, figname='fraction_dead.pdf'):
     figname : Optional[str]
        Name of pdf file for saving the output.
     """
+    if figname is None:
+        figname = "%s.pdf" % y_col
     plt.ioff()
     timepoints = df_fd.timepoint.unique()
     pdf_pages = PdfPages(figname)
     for tp in timepoints:
         dft = df_fd[df_fd.timepoint == tp]
-        g = plot_fd(dft)
+        g = plot_fd(dft, y_col)
         pdf_pages.savefig(g.fig)
     pdf_pages.close()
 
 
 
-def plot_fd(df_fd):
+def plot_fd(df_fd, y_col='fraction_dead'):
     """Plots fraction dead summary figure for each timepoint.
     Parameters
     ----------
@@ -179,7 +181,7 @@ def plot_fd(df_fd):
     g : seaborn figure object
     """
     df_fd = df_fd.groupby(['cell_line', 'agent', 'concentration', 'timepoint'],
-                       as_index=False)['fraction_dead'].mean().copy()
+                       as_index=False)[y_col].mean().copy()
     agents = df_fd.agent.unique()
     col_wrap = np.min((5,
                        np.max((3, int(round(np.sqrt(len(agents))))))
@@ -196,9 +198,10 @@ def plot_fd(df_fd):
                       sharey=True, sharex=False)
     timepoint = df_fd.timepoint.unique()[0]
     g.set(xscale='log')
-    g = (g.map(plt.plot, "concentration", "fraction_dead", marker='.'))
+    g = (g.map(plt.plot, "concentration", y_col, marker='.'))
     g.set_titles(col_template='{col_name}')
-    g.set_axis_labels(x_var=u'concentration (\u03bcM)', y_var='fraction dead')
+    ylabel = y_col.replace('_', ' ')
+    g.set_axis_labels(x_var=u'concentration (\u03bcM)', y_var=ylabel)
     # g.add_legend()
     labels = hue_order
     colors = sns.color_palette("husl", len(labels)).as_hex()
