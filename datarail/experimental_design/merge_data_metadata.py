@@ -65,7 +65,7 @@ def remove_duplicate_wells(dfo):
 
 
 def generate_GRinput(df, counts_column='cell_count',
-                     time0_plate=True, mean=False,
+                     time0_plate=True, 
                      evaluate_dead=True,
                      dead_cell_columns=['corpse_count', 'cell_count__dead']):
     """
@@ -77,12 +77,10 @@ def generate_GRinput(df, counts_column='cell_count',
     ----------
     df : pandas dataframe
       input dataframe consisting of well level live and dead cell counts.
-    counts_column : str
+    live_counts_column : str
       column name corresponding to number of live cells.
     time0_plate : boolean
       Specify as True if time_0 plate is included in the experiment.Default is True.
-    mean : boolean
-      computes mean live/dead cell counts across replicates. Default is False. 
     evaluate_dead : boolean
       computes mean dead cell count for time0_ctrl and untreated controls. Default is True.
     dead_cell_columns : list of str
@@ -96,6 +94,8 @@ def generate_GRinput(df, counts_column='cell_count',
     """
     if evaluate_dead:
         df['dead_count'] = df[dead_cell_columns].sum(axis=1)
+        total_cell_columns = dead_cell_columns + [counts_column]
+        df = get_fraction_dead(df, dead_cell_columns, total_cell_columns).copy()
     dft = df[df['role'] == 'treatment'].copy()
     df_counts = dft.copy()
     cell_lines = dft['cell_line'].unique()
@@ -130,6 +130,13 @@ def generate_GRinput(df, counts_column='cell_count',
         df_counts['dead_count__ctrl'] = [dcd.loc[c, t] for c, t in
                                          zip(df_counts['cell_line'],
                                              df_counts['timepoint'])]
+        dcf = df[df.role == 'negative_control'].groupby(
+            ['cell_line', 'timepoint'])['fraction_dead'].mean()
+        df_counts['fraction_dead__ctrl'] = [dcf.loc[c, t] for c, t in
+                                            zip(df_counts['cell_line'],
+                                                df_counts['timepoint'])]
+        df_counts['increase_fraction_dead'] = df_counts['fraction_dead'] -\
+            df_counts['fraction_dead__ctrl']
     df_counts = df_counts.loc[:, ~df_counts.columns.duplicated()]
 
     agent_cols = [a for a in df_counts.columns.tolist()
@@ -149,18 +156,20 @@ def generate_GRinput(df, counts_column='cell_count',
             x[x.notnull()]), axis=1)
         df_counts['concentration'] = df_counts[concentration_cols].astype(str).apply(
             lambda x: '; '.join(x[x.notnull()]), axis=1)
+    return df_counts    
 
-    if mean:
-        scol = ['cell_count', 'cell_count__ctrl', 'cell_count__time0',
-                'dead_count', 'dead_count__ctrl', 'dead_count__time0']
-        counts_col = [s for s in scol if s in df_counts.columns.tolist()]
-        df_counts_mean = df_counts.groupby(['cell_line', 'agent',
-                                            'concentration', 'timepoint'])[
+
+def get_counts_mean(df_counts):
+    scol = ['cell_count', 'cell_count__ctrl', 'cell_count__time0',
+            'dead_count', 'dead_count__ctrl', 'dead_count__time0',
+            'fraction_dead', 'fraction_dead__ctrl', 'increase_fraction_dead']
+    counts_col = [s for s in scol if s in df_counts.columns.tolist()]
+    df_counts_mean = df_counts.groupby(['cell_line', 'agent',
+                                        'concentration', 'timepoint'])[
                                                 counts_col].apply(np.mean)
-        df_counts_mean = df_counts_mean.reset_index()
-        return df_counts_mean
-    else:
-        return df_counts
+    df_counts_mean = df_counts_mean.reset_index()
+    return df_counts_mean
+    
 
 
 def make_long_table(output_file, barcode, plate_dims=[16, 24]):
@@ -181,8 +190,9 @@ def make_long_table(output_file, barcode, plate_dims=[16, 24]):
 
 
 def get_fraction_dead(dfo,
-                      dead_cell_columns,
-                      total_cell_columns):
+                      dead_cell_columns=['corpse_count', 'cell_count__dead'], 
+                      total_cell_columns=['cell_count', 'cell_count__dead',
+                                          'corpse_count']):
     """ Appends column for fraction of dead cells
     Parameters
     ----------
