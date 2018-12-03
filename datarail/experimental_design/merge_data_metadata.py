@@ -65,27 +65,71 @@ def remove_duplicate_wells(dfo):
 
 
 def generate_GRinput(df, counts_column='cell_count',
-                     time0_plate=True, mean=True):
+                     time0_plate=True, mean=False,
+                     evaluate_dead=True,
+                     dead_cell_columns=['corpse_count', 'cell_count__dead']):
+    """
+    Takes cell/dead count values across all plates to compute mean counts 
+    for time0_ctrl and untreated controls. The columns are then labeled as per 
+    expected input for computing gr values and metrics
+
+    Parameters
+    ----------
+    df : pandas dataframe
+      input dataframe consisting of well level live and dead cell counts.
+    counts_column : str
+      column name corresponding to number of live cells.
+    time0_plate : boolean
+      Specify as True if time_0 plate is included in the experiment.Default is True.
+    mean : boolean
+      computes mean live/dead cell counts across replicates. Default is False. 
+    evaluate_dead : boolean
+      computes mean dead cell count for time0_ctrl and untreated controls. Default is True.
+    dead_cell_columns : list of str
+        list of columns corresponding to dead cell counts.
+
+    Returns
+    -------
+    df_counts : pandas dataframe
+        live/dead cell counts per condition with corresponding time0_ctrl and untreated
+        control counts. Serves as input for computing GR values and metrics.
+    """
+    if evaluate_dead:
+        df['dead_count'] = df[dead_cell_columns].sum(axis=1)
     dft = df[df['role'] == 'treatment'].copy()
     df_counts = dft.copy()
     cell_lines = dft['cell_line'].unique()
     if time0_plate:
-        time0_dc = {}
+        time0_dict_live = {}
+        time0_dict_dead = {}
         for line in cell_lines:
             dfc = df[df['cell_line'] == line].copy()
-            time0_ctrl = dfc[dfc['timepoint'] == 'time0_ctrl'][
+            time0_ctrl_live = dfc[dfc['timepoint'] == 'time0_ctrl'][
                 counts_column].mean()
-            time0_dc[line] = time0_ctrl
-        df_counts['cell_count__time0'] = [time0_dc[line] for line in
+            time0_dict_live[line] = time0_ctrl_live
+            if evaluate_dead:
+                time0_ctrl_dead = dfc[dfc['timepoint'] == 'time0_ctrl'][
+                    'dead_count'].mean()
+                time0_dict_dead[line] = time0_ctrl_dead
+        df_counts['cell_count__time0'] = [time0_dict_live[line] for line in
                                           df_counts['cell_line'].tolist()]
-        counts_col = ['cell_count', 'cell_count__ctrl', 'cell_count__time0']
-    else:
-        counts_col = ['cell_count', 'cell_count__ctrl']
+        if evaluate_dead:
+            df_counts['dead_count__time0'] = [time0_dict_dead[line] for line in
+                                          df_counts['cell_line'].tolist()]
+        #counts_col = ['cell_count', 'cell_count__ctrl', 'cell_count__time0']
+    #else:
+    #    counts_col = ['cell_count', 'cell_count__ctrl']
     dc2 = df[df.role == 'negative_control'].groupby(
         ['cell_line', 'timepoint'])['cell_count'].mean()
     df_counts['cell_count__ctrl'] = [dc2.loc[c, t] for c, t in
                                      zip(df_counts['cell_line'],
                                          df_counts['timepoint'])]
+    if evaluate_dead:
+        dcd = df[df.role == 'negative_control'].groupby(
+            ['cell_line', 'timepoint'])['dead_count'].mean()
+        df_counts['dead_count__ctrl'] = [dcd.loc[c, t] for c, t in
+                                         zip(df_counts['cell_line'],
+                                             df_counts['timepoint'])]
     df_counts = df_counts.loc[:, ~df_counts.columns.duplicated()]
 
     agent_cols = [a for a in df_counts.columns.tolist()
@@ -107,6 +151,9 @@ def generate_GRinput(df, counts_column='cell_count',
             lambda x: '; '.join(x[x.notnull()]), axis=1)
 
     if mean:
+        scol = ['cell_count', 'cell_count__ctrl', 'cell_count__time0',
+                'dead_count', 'dead_count__ctrl', 'dead_count__time0']
+        counts_col = [s for s in scol if s in df_counts.columns.tolist()]
         df_counts_mean = df_counts.groupby(['cell_line', 'agent',
                                             'concentration', 'timepoint'])[
                                                 counts_col].apply(np.mean)
