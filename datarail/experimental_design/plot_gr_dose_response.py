@@ -41,6 +41,12 @@ def plot_dr(df_grvalues, df_grmetric, time_col='timepoint', errbar='bars', size_
        GR values for each condition
     df_grmetrics : pandas dataframe
        GR metrics summary for each condition
+    time_col : Optional[str]
+      name of column containing information on duration of drug treatment
+    errbar : Optional[str]
+      style in which errorbar is displayed. Default is bar
+    size_override: Optional
+       override default aspect ratio specified based on number of subplots.
 
     Returns
     -------
@@ -102,7 +108,7 @@ def plot_gr50(dfgr, ax, labels, colors):
     ax : subplot figure object
     labels : list of str
         List of unique cell lines
-    colors : annary of str
+    colors : array of str
         List of unique colors for each cell line. 
         Should be the same length as labels
     """
@@ -154,6 +160,9 @@ def plot_fraction_dead(df_fd, y_col='fraction_dead', figname=None):
     ----------
     df_fd : pandas dataframe
        fraction dead  values for each condition
+    y_col : Optional[str]
+       name of column to plot. Default is 'fraction_dead'.
+       Alternatively, 'increase_fraction_dead' can be plotted.
     figname : Optional[str]
        Name of pdf file for saving the output.
     """
@@ -176,6 +185,9 @@ def plot_fd(df_fd, y_col='fraction_dead'):
     ----------
     df_fd : pandas dataframe
        Fraction dead values for each condition
+    y_col : Optional[str]
+       name of column to plot. Default is 'fraction_dead'.
+       Alternatively, 'increase_fraction_dead' can be plotted
     Returns
     -------
     g : seaborn figure object
