@@ -8,7 +8,8 @@ matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
 
 
-def plot_dose_response(df_grvalues, df_grmetrics,
+def plot_dose_response(df_grvalues, df_grmetrics=None, gr_value='GRvalue',
+                       time_col='timepoint', errbar='bars',
                        figname='dose_response.pdf'):
     """Plots dose response summary figures, one timepoint per pdf page.
     
@@ -16,8 +17,8 @@ def plot_dose_response(df_grvalues, df_grmetrics,
     ----------
     df_grvalues : pandas dataframe
        GR values for each condition
-    df_grmetrics : pandas dataframe
-       GR metrics summary for each condition
+    df_grmetrics : Optional[pandas dataframe]
+       GR metrics summary for each condition.
     figname : Optional[str]
        Name of pdf file for saving the output.
     """
@@ -26,23 +27,30 @@ def plot_dose_response(df_grvalues, df_grmetrics,
     pdf_pages = PdfPages(figname)
     for tp in timepoints:
         dfgrv = df_grvalues[df_grvalues.timepoint == tp]
-        dfgrm = df_grmetrics[df_grmetrics.timepoint == tp]
-        g = plot_dr(dfgrv, dfgrm)
+        if df_grmetrics:
+            dfgrm = df_grmetrics[df_grmetrics.timepoint == tp]
+        else:
+            dfgrm = None
+        g = plot_dr(dfgrv, dfgrm, time_col, gr_value, errbar)
         pdf_pages.savefig(g.fig)
     pdf_pages.close()
 
 
-def plot_dr(df_grvalues, df_grmetric, time_col='timepoint', errbar='bars', size_override=None):
+def plot_dr(df_grvalues, df_grmetric=None, time_col='timepoint', gr_value='GRvalue',
+            errbar='bars', size_override=None):
     """Plots dose response summary figure for each timepoint.
 
     Parameters
     ----------
     df_grvalues : pandas dataframe
        GR values for each condition
-    df_grmetrics : pandas dataframe
+    df_grmetrics : Optional[pandas dataframe]
        GR metrics summary for each condition
     time_col : Optional[str]
       name of column containing information on duration of drug treatment
+    gr_value : Optional[str]
+      name of GR column to plot. Default is GRvalue. 
+      Alternates include GR_static and GR_toxic.
     errbar : Optional[str]
       style in which errorbar is displayed. Default is bar
     size_override: Optional
@@ -72,9 +80,10 @@ def plot_dr(df_grvalues, df_grmetric, time_col='timepoint', errbar='bars', size_
                       sharey=True, sharex=False)
     timepoint = df_grvalues[time_col].unique()[0]
     g.set(xscale='log')
-    g = g.map(sns.lineplot, "concentration", "GRvalue", err_style=errbar, ci='sd', marker='.')
+    g = g.map(sns.lineplot, "concentration", gr_value, err_style=errbar, ci='sd', marker='.')
     g.set_titles(col_template='{col_name}')
-    g.set_axis_labels(x_var=u'concentration (\u03bcM)', y_var='GR value')
+    ylabel = gr_value.replace('_', ' ')
+    g.set_axis_labels(x_var=u'concentration (\u03bcM)', y_var=ylabel)
     # g.add_legend()
     labels = hue_order
     colors = sns.color_palette("husl", len(labels)).as_hex()
@@ -83,12 +92,13 @@ def plot_dr(df_grvalues, df_grmetric, time_col='timepoint', errbar='bars', size_
     xticks = [1e-3, 1e-1, 1e+1]
     for ax in g.axes.reshape(-1):
         xlim = ax.get_xlim()
-        ylim_max = ax.get_ylim()[1]
+        ylim_max = np.min((2, ax.get_ylim()[1]))
         ax.plot(xlim, [0, 0])
         ax.set_xticks(xticks)
         ax.tick_params(axis='both', which='major', labelsize=6)
         ax.set_ylim((-0.6, ylim_max))
-        plot_gr50(df_grmetric, ax, labels, colors)
+        if df_grmetric:
+            plot_gr50(df_grmetric, ax, labels, colors)
         # plot_grmax(df_grmetric, ax, labels, colors)
     plt.subplots_adjust(hspace=0.7, wspace=0.3, bottom=0.1,
                         left=0.1, right=0.6)
