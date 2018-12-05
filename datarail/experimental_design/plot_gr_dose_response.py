@@ -27,7 +27,7 @@ def plot_dose_response(df_grvalues, df_grmetrics=None, gr_value='GRvalue',
     pdf_pages = PdfPages(figname)
     for tp in timepoints:
         dfgrv = df_grvalues[df_grvalues.timepoint == tp]
-        if df_grmetrics:
+        if df_grmetrics is not None:
             dfgrm = df_grmetrics[df_grmetrics.timepoint == tp]
         else:
             dfgrm = None
@@ -97,7 +97,7 @@ def plot_dr(df_grvalues, df_grmetric=None, time_col='timepoint', gr_value='GRval
         ax.set_xticks(xticks)
         ax.tick_params(axis='both', which='major', labelsize=6)
         ax.set_ylim((-0.6, ylim_max))
-        if df_grmetric:
+        if df_grmetric is not None:
             plot_gr50(df_grmetric, ax, labels, colors)
         # plot_grmax(df_grmetric, ax, labels, colors)
     plt.subplots_adjust(hspace=0.7, wspace=0.3, bottom=0.1,
