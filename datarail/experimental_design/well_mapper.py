@@ -2,14 +2,14 @@ import numpy as np
 
 
 def get_well_positions(Designs, drug, concentration):
-    """ Function that returns the well in a Design xarray
+    """Function that returns the well in a Design xarray
     given the drug name and concentration
 
     Parameters
     ----------
-    Design: xarray structure
+    Design : xarray structure
 
-    drug: str
+    drug : str
       name of drug being queried
 
     concentration: int
@@ -37,8 +37,8 @@ def get_well_index(well, plate_dims):
     """Function that maps well cooridnate to an numerical id
     between 0 and number of wells on the plate
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     well: str
       well coordinate on plate eg: 'B10'
     plate_dims: np array
@@ -57,7 +57,7 @@ def get_well_index(well, plate_dims):
 
 
 def get_inner_untreated_wells(Design, drugs):
-    """ function that checks for and returns list of wells
+    """Function that checks for and returns list of wells
     available in the inner wells
 
     Parameters
@@ -93,16 +93,16 @@ def get_inner_untreated_wells(Design, drugs):
 def get_well_name(well_id, plate_dims):
     """Function that maps well numerical id to name (label)
 
-    Parameter
-    ---------
-    well_id: int
+    Parameters
+    ----------
+    well_id : int
       well id on plate eg: 234
-    plate_dims: np array
+    plate_dims : np array
        dimensions of plate
 
     Returns
     -------
-    index: str
+    index : str
        coordinate label of the well, eg: 'B10'
     """
 

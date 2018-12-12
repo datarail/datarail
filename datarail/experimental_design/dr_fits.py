@@ -8,7 +8,8 @@ matplotlib.rcParams['ps.fonttype'] = 42
 
 
 def biphasic_fit_function(x, a, b, c, d, e, f):
-    """ Function for biphasic fit
+    """Function for biphasic fit
+
     Parameters
     ----------
     x : 1d array
@@ -44,7 +45,7 @@ def sigmoidal_fit_function(x, a, b, c):
 
 
 def fit(xdata, ydata, cap=1, extrapolrange=10, ax=None, fig_title=None):
-    """ Scipy's curve fit uses non-linear least square to fit
+    """Scipy's curve fit uses non-linear least square to fit
     function "biphasic_fit_function" to data
 
     Parameters

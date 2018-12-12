@@ -2,26 +2,27 @@ import pandas as pd
 import numpy as np
 
 
-def combine_combos(df):
+def _combine_combos(df):
     dfc = df.groupby(['barcode', 'well'], as_index=True).apply(
-          lambda x: x.apply(combine_duplicates, axis=0))
+          lambda x: x.apply(_combine_duplicates, axis=0))
     return dfc
 
 
-def combine_duplicates(x):
+def _combine_duplicates(x):
     return ','.join(x.astype(str))
 
 
 def export2pd(filename):
-    """
-    Note: Open .xml file in excel and save as .xlsx file
-    Parameter
-    ---------
-    filename: str
+    """Note: Open .xml file in excel and save as .xlsx file
+
+    Parameters
+    ----------
+    filename : str
         path to .xlsx file
+
     Returns
     -------
-    dfm: pandas datafame
+    dfm : pandas datafame
        metadata file complying with datarail metadata conventions
     """
     dfi = pd.read_excel(filename, sheet_name='Tabular detail')
@@ -29,7 +30,7 @@ def export2pd(filename):
     dfi = dfi[['Plate', 'Dispensed\nwell', 'Fluid name', 'Dispensed conc.']]
     dfi.columns = ['barcode', 'well', 'agent', 'concentration']
     dfi['concentration'] = dfi['concentration'].fillna(0)
-    dfm = combine_combos(dfi)
+    dfm = _combine_combos(dfi)
     del dfm['barcode']
     del dfm['well']
     dfm = dfm.reset_index()

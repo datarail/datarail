@@ -6,16 +6,16 @@ import warnings
 
 
 def get_boundary_cell_count(plate_dims, exclude_outer=1):
-    """ get number of wells in outer or inner edges
+    """Get number of wells in outer or inner edges
 
-    Parameter
-    ---------
-    plate_dims: array
+    Parameters
+    ----------
+    plate_dims : array
          dimensions of plate
 
     Returns
     -------
-    boundary_cell_count: int
+    boundary_cell_count : int
            number of wells in the edges
     """
     boundary_cell_count = 2 * (plate_dims[0] + plate_dims[1] - 2)
@@ -25,25 +25,26 @@ def get_boundary_cell_count(plate_dims, exclude_outer=1):
 
 
 def set_dosing(max_dose, num_doses, num_replicates=1, step='half-log'):
-    """ returns list of doses (micromolar) at half log intervals
+    """Returns list of doses (micromolar) at half log intervals
+
     Parameters
     ----------
-    max_dose: int
+    max_dose : int
         highest dose in the dose range
-    num_doses: int
+    num_doses : int
         number of doses in the dose range. Maximum is set to 9.
         If num doses < 9, then doses will be removed starting from
         lowest moving to higher doses.
-    num_replicates: int
+    num_replicates : int
         number of times the dose range is replicated on the plate
     step : str
         interval between doses. Default is 'half-log'. Options include
         'half-log', 'onethird-log', 'quarter-log', '1:n' where n is the
         dilution fold.
 
-    Returns:
+    Returns
     -------
-    dose_range: list of floats
+    dose_range : list of floats
     """
     if step == 'half-log':
         dose_range = max_dose * 1e-4 * np.logspace(0, 4, 9)
@@ -65,22 +66,23 @@ def set_dosing(max_dose, num_doses, num_replicates=1, step='half-log'):
 
 
 def set_combo_dosing(max_doses, num_doses, eq=False, num_replicates=1):
-    """ returns combination of doses  for 2 or more agents
+    """Returns combination of doses  for 2 or more agents
+
     Parameters
     ----------
-    max_doses: list of int
+    max_doses : list of int
         highest doses in the dose range for each agent
-    num_doses: list of int
+    num_doses : list of int
         number of doses in the dose range for each agent. Maximum is set to 9.
         If num doses < 9, then doses will be removed starting from
         lowest moving to higher doses.
-    num_replicates: list of int
+    num_replicates : list of int
         list of number of times the dose range is replicated on the plate
         for each agent
 
-    Returns:
+    Returns
     -------
-    dose_range: list of tuples
+    dose_range : list of tuples
         each tuple corresponds to one combination of doses for 2 or more agents
     """
     dose_lists = []
@@ -108,29 +110,28 @@ def exclude_treatment(df, drug, doses):
 
 def construct_well_level_df(input_file, plate_dims=[16, 24],
                             exclude_outer=1, cell_lines=[]):
-    """ Generates long table of doses and drugs mapped to wells.
-
-    Input file should be broad description of the planned experimental design
-    and should contain the following columns
-    - 'agent' column listing the names of drugs
+    """Generates long table of doses and drugs mapped to wells.
+    The Input file should be broad description of the planned experimental design
+    and should contain the following columns:
+    * agent : column listing the names of drugs
        including positve and negative controls
-    - 'max_dose__um' column listing the highest dose for each agent
-    - 'num_doses' column listing the number of doses for each agent
-    - 'role' column listing the intended role for each agent
-       'treatment', positive_control', 'negative_control', or 'fingerprint'
-    - 'num_replicates' column listing number of times a drug's
+    * max_dose__um : column listing the highest dose for each agent
+    * num_doses : column listing the number of doses for each agent
+    * role : column listing the intended role for each agent
+       'treatment', 'positive_control', 'negative_control', or 'fingerprint'
+    * num_replicates : column listing number of times a drug's
        dosing scheme is replicated on the same plate
-    - 'exclude_doses' column (OPTIONAL) listing doses to be excluded
+    * exclude_doses : column (OPTIONAL) listing doses to be excluded
        for a given drug
-    - 'step' column listing option for interval between doses.
+    * step : column listing option for interval between doses.
 
-    Parameters:
+    Parameters
     ----------
-    input_file: str
+    input_file : str
             csv or tsv file name of the input file
-    plate_dims: list of int
+    plate_dims : list of int
             dimensions of the physical plate
-    exlude_outer: int
+    exlude_outer : int
             number of outer wells to exlude; defaut set to 1
     Returns
     -------
@@ -212,21 +213,22 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
 def add_negative_control(df, control_name='DMSO',
                          plate_dims=[16, 24], exclude_outer=1,
                          cell_lines=[]):
-    """ Assigns negative control agent to untreated wells
-    Parameter
-    ---------
-    df: pandas dataframe
+    """Assigns negative control agent to untreated wells
+
+    Parameters
+    ----------
+    df : pandas dataframe
         well level metadata with specification of agents and concentration
-    control_name: str
+    control_name : str
         name of control agent; default is DMSO
-    plate_dims: list of int
+    plate_dims : list of int
         dimension of physical plate
-    exclude_outer: int
+    exclude_outer : int
        number of outer well layers to be excluded
 
-    Returns:
+    Returns
     -------
-    df_well: pandas dataframe
+    df_well : pandas dataframe
         well level metadata with specification of both agents and
         negative control
     """
@@ -257,18 +259,20 @@ def add_negative_control(df, control_name='DMSO',
 
 
 def assign_fingerprint_wells(fingerprint, treatment, dose):
-    """ Returns a set of wells along the edge that serve as barcode for
+    """Returns a set of wells along the edge that serve as barcode for
     the plate based on the fingerprint word
+
     Parameters
     ----------
-    fingerprint: str
-    treatment: str
+    fingerprint : str
+    treatment : str
         the drug used to treat fingerprint wells
-    dose: float
+    dose : float
         the dose of drug treatment
-    Returns:
+    
+    Returns
     -------
-    df: pandas dataframe
+    df : pandas dataframe
        table mapping wells encoding the fingerprint to treatment
     """
     fingerprint_wells = edge_fingerprint.encode_fingerprint(fingerprint)
@@ -285,13 +289,15 @@ def assign_fingerprint_wells(fingerprint, treatment, dose):
 
 
 def define_treatment_wells(exclude_outer=1, plate_dims=[16, 24]):
-    """ defines set of inner wells to be used for treatments
-    Parameter:
-    ---------
-    exclude_outer: int
+    """Defines set of inner wells to be used for treatments
+
+    Parameters
+    ----------
+    exclude_outer : int
        defines outer well columns and rows to to exclude
-    plate_dims: list of int
-    Returns:
+    plate_dims : list of int
+    
+    Returns
     -------
     tr_wells, list(set(exclude_wells)): tuple of lists
        lists of treatment wells and outer wells
@@ -311,21 +317,23 @@ def define_treatment_wells(exclude_outer=1, plate_dims=[16, 24]):
 def randomize_wells(df_plate,
                     fingerprint_drug=None, fingerprint_dose=1,
                     exclude_outer=1, plate_dims=[16, 24]):
-    """ Returns dataframe with randomized wells for all plate replicates
-    Parameters:
+    """Returns dataframe with randomized wells for all plate replicates
+    
+    Parameters
     -----------
-    df: pandas dataframe
+    df : pandas dataframe
         plate level input metadata file
-    fingerprint_drug: str
+    fingerprint_drug : str
         drug used for treating fingerprint wells
-    fingerprint_dose: int
+    fingerprint_dose : int
        dose of drug used for fingerprint wells treatment
-    exclude_outer: int
+    exclude_outer : int
        number of outer well layers to exclude
-    plate_dims: list of int
-    Returns:
-    --------
-    dfr: pandas dataframe
+    plate_dims : list of int
+
+    Returns
+    -------
+    dfr : pandas dataframe
        drug and dose mapped to randomized wells
     """
     cols = ["%02d" % s for s in range(1, plate_dims[1]+1)]
@@ -393,16 +401,18 @@ def randomize_wells(df_plate,
 
 
 def wells_per_cell_line(cell_lines, exclude_outer):
-    """ Computes number of wells available per cell line
+    """Computes number of wells available per cell line
+    
     Parameters
     ----------
-    cell_lines: list
+    cell_lines : list
         list of cell lines on a plate
-    exclude_outer: int
+    exclude_outer : int
         number of outer well layers to exclude
+
     Returns
     -------
-    avail_wells_per_line: int
+    avail_wells_per_line : int
         number of wells available per cell line
     """
     if len(cell_lines) <= 1:
@@ -415,16 +425,18 @@ def wells_per_cell_line(cell_lines, exclude_outer):
 
 
 def chunks(l, n):
-    """ splits list l into chunks of size n
+    """splits list l into chunks of size n
+
     Parameters
     ----------
-    l: list
+    l : list
        list of well names
-    n: int
+    n : int
        number of wells available per cell line
+
     Returns
     -------
-    wells_per_line: list of lists
+    wells_per_line : list of lists
         lenght of the list equals number of cell lines
     """
     n = max(1, n)
@@ -434,20 +446,23 @@ def chunks(l, n):
 
 def randomize_per_line(df, rand_num, exclude_outer,
                        cell_lines=[''], plate_dims=[16, 24]):
-    """ Takes initial drug layout schema and applies the layout pattern
+    """Takes initial drug layout schema and applies the layout pattern
     to equal portions of the plate based on the number of cell lines.
     Wells are randomized if rand_num > 1
-    df: pandas dataframe
+
+    Parameters
+    ----------
+    df : pandas dataframe
         initial drug layout schema
-    rand_num: int
+    rand_num : int
        seed to be used for randomizaition
-    cell_lines: list of str
+    cell_lines : list of str
        cell lines on the plate
-    plate_dims: list of int
+    plate_dims : list of int
        physical dimensions of the plate
     Returns
     -------
-    dfr: pandas dataframe
+    dfr : pandas dataframe
        drug schema layout with layout repeated per cell line and assigned to
        equal portions of the plate. Wells are assigned and
        randomized if rand num > 1.
