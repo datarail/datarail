@@ -68,8 +68,7 @@ def generate_GRinput(df, counts_column='cell_count',
                      time0_plate=True, 
                      evaluate_dead=True,
                      dead_cell_columns=['corpse_count', 'cell_count__dead']):
-    """
-    Takes cell/dead count values across all plates to compute mean counts 
+    """Takes cell/dead count values across all plates to compute mean counts 
     for time0_ctrl and untreated controls. The columns are then labeled as per 
     expected input for computing gr values and metrics
 
@@ -156,6 +155,7 @@ def generate_GRinput(df, counts_column='cell_count',
             x[x.notnull()]), axis=1)
         df_counts['concentration'] = df_counts[concentration_cols].astype(str).apply(
             lambda x: '; '.join(x[x.notnull()]), axis=1)
+    df_counts = df_counts.sort_values(by=['cell_line', 'agent', 'concentration'])
     return df_counts    
 
 
@@ -193,7 +193,8 @@ def get_fraction_dead(dfo,
                       dead_cell_columns=['corpse_count', 'cell_count__dead'], 
                       total_cell_columns=['cell_count', 'cell_count__dead',
                                           'corpse_count']):
-    """ Appends column for fraction of dead cells
+    """Appends column for fraction of dead cells
+
     Parameters
     ----------
     dfo : pandas dataframe
