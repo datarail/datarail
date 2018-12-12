@@ -57,7 +57,7 @@ def plot_stacked_bar(dfi, plot_num,
         plt.title(title)
 
 
- def plot(dfi, data_cols=['G1', 'S', 'G2', 'S_dropout',
+def plot(dfi, data_cols=['G1', 'S', 'G2', 'S_dropout',
                           'other', 'M', 'fraction_dead']):
      data = dfi.copy()
      data = data.groupby(['cell_line', 'agent', 'concentration'],
