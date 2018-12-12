@@ -9,7 +9,7 @@ matplotlib.rcParams['ps.fonttype'] = 42
 
 
 def plot_dose_response(df_grvalues, df_grmetrics=None, gr_value='GRvalue',
-                       time_col='timepoint', errbar='bars',
+                       time_col='timepoint', errbar=None,
                        figname='dose_response.pdf'):
     """Plots dose response summary figures, one timepoint per pdf page.
     
@@ -36,8 +36,8 @@ def plot_dose_response(df_grvalues, df_grmetrics=None, gr_value='GRvalue',
     pdf_pages.close()
 
 
-def plot_dr(df_grvalues, df_grmetric=None, time_col='timepoint', gr_value='GRvalue',
-            errbar='bars', size_override=None):
+def plot_dr(data, df_grmetric=None, time_col='timepoint', gr_value='GRvalue',
+            errbar=None, size_override=None):
     """Plots dose response summary figure for each timepoint.
 
     Parameters
@@ -61,6 +61,11 @@ def plot_dr(df_grvalues, df_grmetric=None, time_col='timepoint', gr_value='GRval
     g : seaborn figure object
 
     """
+    df_grvalues = data.copy()
+    df_grvalues[gr_value] = df_grvalues[gr_value].astype(float)
+    df_grvalues['sd'] = df_grvalues[gr_value].std()
+    df_grvalues = df_grvalues.groupby(['cell_line', 'agent', 'concentration', 'timepoint'],
+                                      as_index=False)[gr_value, 'sd'].mean().copy()
     agents = df_grvalues.agent.unique()
     col_wrap = np.min((5,
                        np.max((3, int(round(np.sqrt(len(agents))))))
@@ -80,7 +85,10 @@ def plot_dr(df_grvalues, df_grmetric=None, time_col='timepoint', gr_value='GRval
                       sharey=True, sharex=False)
     timepoint = df_grvalues[time_col].unique()[0]
     g.set(xscale='log')
-    g = g.map(sns.lineplot, "concentration", gr_value, err_style=errbar, ci='sd', marker='.')
+    if errbar is not None:
+        g = g.map(plt.errorbar, "concentration", gr_value, errbar, marker='.')
+    else:
+        g = g.map(plt.plot, "concentration", gr_value, marker='.')
     g.set_titles(col_template='{col_name}')
     ylabel = gr_value.replace('_', ' ')
     g.set_axis_labels(x_var=u'concentration (\u03bcM)', y_var=ylabel)
@@ -163,7 +171,7 @@ def plot_grmax(dfgr, ax, labels, colors):
 
 
 
-def plot_fraction_dead(df_fd, y_col='fraction_dead', figname=None):
+def plot_fraction_dead(df_fd, y_col='fraction_dead', figname=None, errbar=None):
     """Plots fraction dead figures, one timepoint per pdf page.
     
     Parameters
@@ -183,14 +191,15 @@ def plot_fraction_dead(df_fd, y_col='fraction_dead', figname=None):
     pdf_pages = PdfPages(figname)
     for tp in timepoints:
         dft = df_fd[df_fd.timepoint == tp]
-        g = plot_fd(dft, y_col)
+        g = plot_fd(dft, y_col, errbar)
         pdf_pages.savefig(g.fig)
     pdf_pages.close()
 
 
 
-def plot_fd(df_fd, y_col='fraction_dead'):
+def plot_fd(data, y_col='fraction_dead', errbar=None):
     """Plots fraction dead summary figure for each timepoint.
+
     Parameters
     ----------
     df_fd : pandas dataframe
@@ -198,12 +207,15 @@ def plot_fd(df_fd, y_col='fraction_dead'):
     y_col : Optional[str]
        name of column to plot. Default is 'fraction_dead'.
        Alternatively, 'increase_fraction_dead' can be plotted
+
     Returns
     -------
     g : seaborn figure object
     """
+    df_fd = data.copy()
+    df_fd['sd'] = df_fd[y_col].std()
     df_fd = df_fd.groupby(['cell_line', 'agent', 'concentration', 'timepoint'],
-                       as_index=False)[y_col].mean().copy()
+                       as_index=False)[y_col, 'sd'].mean().copy()
     agents = df_fd.agent.unique()
     col_wrap = np.min((5,
                        np.max((3, int(round(np.sqrt(len(agents))))))
@@ -220,7 +232,10 @@ def plot_fd(df_fd, y_col='fraction_dead'):
                       sharey=True, sharex=False)
     timepoint = df_fd.timepoint.unique()[0]
     g.set(xscale='log')
-    g = (g.map(plt.plot, "concentration", y_col, marker='.'))
+    if errbar is not None:
+        g = (g.map(plt.errorbar, "concentration", y_col, errbar, marker='.'))
+    else:
+        g = (g.map(plt.plot, "concentration", y_col, marker='.'))
     g.set_titles(col_template='{col_name}')
     ylabel = y_col.replace('_', ' ')
     g.set_axis_labels(x_var=u'concentration (\u03bcM)', y_var=ylabel)
