@@ -22,6 +22,8 @@ def plot_dose_response(df_grvalues, df_grmetrics=None, gr_value='GRvalue',
        GR metrics summary for each condition.
     figname : Optional[str]
        Name of pdf file for saving the output.
+    errbar : Optional[str]
+        Default is None. `sd` to plot stdev errorbar 
     """
     plt.ioff()
     timepoints = df_grvalues.timepoint.unique()
@@ -212,6 +214,8 @@ def plot_fd(data, y_col='fraction_dead', errbar=None):
     y_col : Optional[str]
        name of column to plot. Default is 'fraction_dead'.
        Alternatively, 'increase_fraction_dead' can be plotted
+    errbar : Optional[str]
+        Default is None. `sd` to plot stdev errorbar 
 
     Returns
     -------
