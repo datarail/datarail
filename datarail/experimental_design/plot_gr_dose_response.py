@@ -6,6 +6,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
+import pandas as pd
 
 
 def plot_dose_response(df_grvalues, df_grmetrics=None, gr_value='GRvalue',
@@ -63,9 +64,13 @@ def plot_dr(data, df_grmetric=None, time_col='timepoint', gr_value='GRvalue',
     """
     df_grvalues = data.copy()
     df_grvalues[gr_value] = df_grvalues[gr_value].astype(float)
-    df_grvalues['sd'] = df_grvalues[gr_value].std()
-    df_grvalues = df_grvalues.groupby(['cell_line', 'agent', 'concentration', 'timepoint'],
-                                      as_index=False)[gr_value, 'sd'].mean().copy()
+    dfg1 = df_grvalues.groupby(['cell_line', 'agent', 'concentration', 'timepoint'],
+                                 as_index=True)[gr_value].mean().copy()
+    dfg2 = df_grvalues.groupby(['cell_line', 'agent', 'concentration', 'timepoint'],
+                                 as_index=True)[gr_value].std().copy()
+    df_grvalues = pd.concat([dfg1, dfg2], axis=1)
+    df_grvalues.columns = [gr_value, 'sd']
+    df_grvalues = df_grvalues.reset_index()
     agents = df_grvalues.agent.unique()
     col_wrap = np.min((5,
                        np.max((3, int(round(np.sqrt(len(agents))))))
@@ -213,9 +218,13 @@ def plot_fd(data, y_col='fraction_dead', errbar=None):
     g : seaborn figure object
     """
     df_fd = data.copy()
-    df_fd['sd'] = df_fd[y_col].std()
-    df_fd = df_fd.groupby(['cell_line', 'agent', 'concentration', 'timepoint'],
-                       as_index=False)[y_col, 'sd'].mean().copy()
+    df_fd1 = df_fd.groupby(['cell_line', 'agent', 'concentration', 'timepoint'],
+                           as_index=True)[y_col].mean().copy()
+    df_fd2 = df_fd.groupby(['cell_line', 'agent', 'concentration', 'timepoint'],
+                           as_index=True)[y_col].std().copy()
+    df_fd = pd.concat([df_fd1, df_fd2], axis=1)
+    df_fd.columns = [y_col, 'sd']
+    df_fd = df_fd.reset_index()
     agents = df_fd.agent.unique()
     col_wrap = np.min((5,
                        np.max((3, int(round(np.sqrt(len(agents))))))
