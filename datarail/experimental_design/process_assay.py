@@ -355,6 +355,8 @@ def randomize_wells(df_plate,
         randomization_num = int(randomization_num)
         if timepoint == 'time0_ctrl':
             dfw = pd.DataFrame()
+        elif str(timepoint) == '0':
+            dfw = pd.DataFrame()            
         else:
             dfw = construct_well_level_df(well_input_file,
                                           cell_lines=cell_lines,
