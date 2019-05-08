@@ -10,7 +10,7 @@ import pandas as pd
 
 
 def plot_dose_response(df_grvalues, df_grmetrics=None, gr_value='GRvalue',
-                       time_col='timepoint', errbar=None,
+                       time_col='timepoint', errbar=None, hue_col='cell_line', subplot_col='agent',
                        figname='dose_response.pdf'):
     """Plots dose response summary figures, one timepoint per pdf page.
     
@@ -34,13 +34,14 @@ def plot_dose_response(df_grvalues, df_grmetrics=None, gr_value='GRvalue',
             dfgrm = df_grmetrics[df_grmetrics.timepoint == tp]
         else:
             dfgrm = None
-        g = plot_dr(dfgrv, dfgrm, time_col, gr_value, errbar)
+        g = plot_dr(dfgrv, dfgrm, time_col, gr_value, errbar,
+                    hue_col=hue_col, subplot_col=subplot_col)
         pdf_pages.savefig(g.fig)
     pdf_pages.close()
 
 
 def plot_dr(data, df_grmetric=None, time_col='timepoint', gr_value='GRvalue',
-            errbar=None, size_override=None):
+            errbar=None, size_override=None, hue_col='cell_line', subplot_col='agent'):
     """Plots dose response summary figure for each timepoint.
 
     Parameters
@@ -73,18 +74,18 @@ def plot_dr(data, df_grmetric=None, time_col='timepoint', gr_value='GRvalue',
     df_grvalues = pd.concat([dfg1, dfg2], axis=1)
     df_grvalues.columns = [gr_value, 'sd']
     df_grvalues = df_grvalues.reset_index()
-    agents = df_grvalues.agent.unique()
+    subplot_vars = df_grvalues[subplot_col].unique()
     col_wrap = np.min((5,
-                       np.max((3, int(round(np.sqrt(len(agents))))))
+                       np.max((3, int(round(np.sqrt(len(subplot_vars))))))
                        ))
-    num_rows = np.ceil(len(agents)/col_wrap)
+    num_rows = np.ceil(len(subplot_vars)/col_wrap)
     if size_override is None:
         subplot_height = np.min((2, round(16 / num_rows)))
     else:
         subplot_height = size_override
-    hue_order = df_grvalues.cell_line.unique()[::-1]
+    hue_order = df_grvalues[hue_col].unique()[::-1]
 
-    g = sns.FacetGrid(df_grvalues, col='agent', hue='cell_line',
+    g = sns.FacetGrid(df_grvalues, col=subplot_col, hue=hue_col,
                       # row='timepoint',
                       hue_order=hue_order, palette='husl',
                       col_wrap=col_wrap,
@@ -113,17 +114,18 @@ def plot_dr(data, df_grmetric=None, time_col='timepoint', gr_value='GRvalue',
         ax.tick_params(axis='both', which='major', labelsize=6)
         ax.set_ylim((-0.6, ylim_max))
         if df_grmetric is not None:
-            plot_gr50(df_grmetric, ax, labels, colors)
+            plot_gr50(df_grmetric, ax, labels, colors, hue_col, subplot_col)
         # plot_grmax(df_grmetric, ax, labels, colors)
     plt.subplots_adjust(hspace=0.7, wspace=0.3, bottom=0.1,
                         left=0.1, right=0.6)
-    plt.legend(handles=handles, title='cell line (%s hrs)' % timepoint,
+    legend_title = hue_col.replace('_', ' ')
+    plt.legend(handles=handles, title='%s (%s hrs)' % (legend_title, timepoint),
                loc='center right',
                bbox_to_anchor=(col_wrap, 1.2))
     return g
 
 
-def plot_gr50(dfgr, ax, labels, colors):
+def plot_gr50(dfgr, ax, labels, colors, hue_col='cell_line', subplot_col='agent'):
     """Plots GR50 for each drug as vertical line on X-axis.
 
     Parameters
@@ -137,13 +139,13 @@ def plot_gr50(dfgr, ax, labels, colors):
         List of unique colors for each cell line. 
         Should be the same length as labels
     """
-    drug = ax.get_title()
+    subplot_var = ax.get_title()
     # print(drug)
     ylim = ax.get_ylim()
     xlim = ax.get_xlim()
-    dfgr_drug = dfgr[dfgr.agent == drug].copy()
-    for line, color in zip(labels, colors):
-        gr50 = dfgr_drug[dfgr_drug.cell_line == line]['GR50'].values[0]
+    dfgrs = dfgr[dfgr[subplot_col] == subplot_var].copy()
+    for hue_var, color in zip(labels, colors):
+        gr50 = dfgrs[dfgrs[hue_col] == hue_var]['GR50'].values[0]
         ax.plot([gr50, gr50], [ylim[0], (ylim[0] + 0.2)], color)
         ax.set_ylim(ylim)
         ax.set_xlim(xlim)
