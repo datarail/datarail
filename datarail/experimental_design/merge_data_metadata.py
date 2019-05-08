@@ -156,6 +156,7 @@ def generate_GRinput(df, counts_column='cell_count',
         df_counts['concentration'] = df_counts[concentration_cols].astype(str).apply(
             lambda x: '; '.join(x[x.notnull()]), axis=1)
     df_counts = df_counts.sort_values(by=['cell_line', 'agent', 'concentration'])
+    df_counts['cell_count'] = df_counts['cell_count'].fillna(0)
     return df_counts    
 
 
