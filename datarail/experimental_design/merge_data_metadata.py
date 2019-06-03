@@ -64,7 +64,7 @@ def remove_duplicate_wells(dfo):
     return dfo
 
 
-def generate_GRinput(df, counts_column='cell_count',
+def generate_GRinput(df_input, counts_column='cell_count',
                      time0_plate=True, 
                      evaluate_dead=True,
                      dead_cell_columns=['corpse_count', 'cell_count__dead']):
@@ -91,6 +91,9 @@ def generate_GRinput(df, counts_column='cell_count',
         live/dead cell counts per condition with corresponding time0_ctrl and untreated
         control counts. Serves as input for computing GR values and metrics.
     """
+    df = df_input.copy()
+    df['timepoint'] = df['timepoint'].replace([0], 'time0_ctrl')
+    df.loc[df.timepoint == 'time0_ctrl','role'] = 'negative_control'
     if evaluate_dead:
         df['dead_count'] = df[dead_cell_columns].sum(axis=1)
         total_cell_columns = dead_cell_columns + [counts_column]
@@ -157,6 +160,7 @@ def generate_GRinput(df, counts_column='cell_count',
             lambda x: '; '.join(x[x.notnull()]), axis=1)
     df_counts = df_counts.sort_values(by=['cell_line', 'agent', 'concentration'])
     df_counts['cell_count'] = df_counts['cell_count'].fillna(0)
+    df_counts = df_counts[df_counts.cell_count != 0].copy() # TEMP HASH to be checked
     return df_counts    
 
 
