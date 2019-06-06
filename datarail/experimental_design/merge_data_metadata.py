@@ -216,3 +216,33 @@ def get_fraction_dead(dfo,
     dfo2['fraction_dead'] = dfo2[dead_cell_columns].sum(axis=1).div(
         dfo2[total_cell_columns].sum(axis=1))
     return dfo2
+
+
+def get_time0_metadata(dfm, time0_barcode, ref_barcode):
+    """Construct time0 metadata table from a reference treated metadata table
+    
+    Parameters
+    ----------
+    dfm : pandas.DataFrame
+       Metadata from datarail or D300 software.
+    time0_barcode : str
+       Barcode of time0 plate for which metadata table needs to be constructed.
+    ref_barcode : str
+       Barocode or plate identifier of reference plate.
+
+    Return
+    ------
+    dt : pandas.DataFrame
+      time0 metadata table 
+    """
+    dt = dfm[dfm.barcode == ref_barcode].copy()
+    dt['timepoint'] = 'time0_ctrl'
+    dt['barcode'] = time0_barcode
+    treated_wells = dt[dt.cell_line.notnull()].well.unique()
+    dt['role'] = np.nan
+    dt['agent'] = np.nan
+    dt['concentration'] = 0
+    dt.loc[da.well.isin(treated_wells), 'role'] = 'negative_control'
+    dt.loc[da.well.isin(treated_wells), 'agent'] = 'DMSO'
+    return dt
+    
