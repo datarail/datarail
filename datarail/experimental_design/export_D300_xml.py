@@ -69,7 +69,7 @@ def export2pd(filename):
     dfm['barcode'] = dfm['barcode'].map(plate_map)
     dfm['agent'] = dfm[agent_columns].apply(
         lambda x: ','.join(x.dropna().astype(str)), axis=1)
-    dfm[conc_cols] = dfm[conc_cols].replace([0], np.nan)
+    dfm[concentration_columns] = dfm[concentration_columns].replace([0], np.nan)
     dfm['concentration'] = dfm[concentration_columns].apply(
         lambda x: ','.join(x.dropna().astype(str)), axis=1)
     return dfm
