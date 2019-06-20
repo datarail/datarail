@@ -67,4 +67,9 @@ def export2pd(filename):
     plate_map = {pn: pb for pn, pb in zip(dfp['Plate'],
                                           dfp['Plate name'])}
     dfm['barcode'] = dfm['barcode'].map(plate_map)
+    dfm['agent'] = dfm[agent_columns].apply(
+        lambda x: ','.join(x.dropna().astype(str)), axis=1)
+    dfm[conc_cols] = dfm[conc_cols].replace([0], np.nan)
+    dfm['concentration'] = dfm[concentration_columns].apply(
+        lambda x: ','.join(x.dropna().astype(str)), axis=1)
     return dfm
