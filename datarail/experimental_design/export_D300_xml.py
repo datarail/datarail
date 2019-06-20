@@ -60,6 +60,12 @@ def export2pd(filename):
         del dfm['concentration']
         for col in concentration_columns:
             dfm[col] = [round(float(s), 4) for s in dfm[col].tolist()]
+        dfm['agent'] = dfm[agent_columns].apply(
+            lambda x: ','.join(x.dropna().astype(str)), axis=1)
+        dfm[concentration_columns] = dfm[concentration_columns].replace(
+            [0], np.nan)
+        dfm['concentration'] = dfm[concentration_columns].apply(
+            lambda x: ','.join(x.dropna().astype(str)), axis=1)    
     else:
         dfm['concentration'] = [round(float(s), 4)
                                 for s in dfm.concentration.tolist()]
@@ -67,9 +73,4 @@ def export2pd(filename):
     plate_map = {pn: pb for pn, pb in zip(dfp['Plate'],
                                           dfp['Plate name'])}
     dfm['barcode'] = dfm['barcode'].map(plate_map)
-    dfm['agent'] = dfm[agent_columns].apply(
-        lambda x: ','.join(x.dropna().astype(str)), axis=1)
-    dfm[concentration_columns] = dfm[concentration_columns].replace([0], np.nan)
-    dfm['concentration'] = dfm[concentration_columns].apply(
-        lambda x: ','.join(x.dropna().astype(str)), axis=1)
     return dfm
