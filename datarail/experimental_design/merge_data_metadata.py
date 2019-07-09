@@ -243,6 +243,6 @@ def get_time0_metadata(dfm, time0_barcode, ref_barcode):
     dt['agent'] = np.nan
     dt['concentration'] = 0
     dt.loc[da.well.isin(treated_wells), 'role'] = 'negative_control'
-    dt.loc[da.well.isin(treated_wells), 'agent'] = 'DMSO'
+    dt.loc[da.well.isin(treated_wells), 'agent'] = np.nan
     return dt
     
