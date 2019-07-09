@@ -17,7 +17,7 @@ def main():
           author_email='kartik_subramanian@hms.harvard.edu',
           url='http://github.com/sorgerlab/datarail',
           packages=find_packages(),
-          install_requires=['numpy', 'pandas==0.22', 'matplotlib',
+          install_requires=['numpy', 'pandas>=0.22', 'matplotlib',
                             'scipy', 'seaborn>=0.9.0', 'scikit_learn'],
           cmdclass=versioneer.get_cmdclass(),
           keywords=['systems', 'biology', 'data', 'array', 'matrix'],
