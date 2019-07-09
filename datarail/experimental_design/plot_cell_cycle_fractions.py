@@ -43,8 +43,10 @@ def plot_stacked_bar(dfi, plot_num=None,
         fig, ax = plt.subplots()
         
     data = dfi.copy()
-    fr_col = [s for s in data_cols if 'fraction_dead' in s][0]
-    data[fr_col] = -data[fr_col]
+    fr_col = [s for s in data_cols if 'fraction_dead' in s]
+    if len(fr_col) >= 1:
+        fr_col = fr_col[0]  
+        data[fr_col] = -data[fr_col]
     g = data[data_cols].plot(kind='bar', stacked=True, ax=ax,
                              legend=show_legend)
     doses = ["%.2g" % d for d in data.concentration.unique()]
