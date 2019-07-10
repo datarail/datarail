@@ -24,7 +24,8 @@ def get_boundary_cell_count(plate_dims, exclude_outer=1):
     return boundary_cell_count
 
 
-def set_dosing(max_dose, num_doses, num_replicates=1, step='half-log'):
+def set_dosing(max_dose, num_doses, num_replicates=1, step='half-log',
+               exclude_doses=None):
     """Returns list of doses (micromolar) at half log intervals
 
     Parameters
@@ -62,6 +63,11 @@ def set_dosing(max_dose, num_doses, num_replicates=1, step='half-log'):
         dr = list(set(dose_range))
         for i in range(1, num_replicates):
             dose_range.extend(dr)
+    if exclude_doses is not None:
+        exb = [False if s+1 in exclude_doses else True for s in range(num_doses)]
+        dose_range = np.array(dose_range[::-1])
+        dose_range = list(dose_range[exb])
+        dose_range = dose_range[::-1]        
     return dose_range
 
 
@@ -102,9 +108,13 @@ def set_combo_dosing(max_doses, num_doses, eq=False, num_replicates=1):
     return combo_doses
 
 
-def exclude_treatment(df, drug, doses):
+def exclude_treatment(df, drug, doses, type='replace'):
     df2 = df.copy()
-    df2 = df2[~((df2.agent == drug) & (df2.concentration.isin(doses)))]
+    if type == 'replace':
+        df2.loc[((df2.agent == drug) & (df2.concentration.isin(doses))), 'agent'] = 'DMSO'
+        df2.loc[((df2.agent == drug) & (df2.concentration.isin(doses))), 'role'] = 'negative_control'
+    elif type=='remove':
+        df2 = df2[~((df2.agent == drug) & (df2.concentration.isin(doses)))].copy()
     return df2
 
 
@@ -154,8 +164,12 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
         num_doses = [int(nd) for nd in num_doses]
         num_replicates = df_tr[df_tr.agent == drug][
             'num_replicates'].values[0]
-#        exclude_doses = df_tr[df_tr.agent == drug][
-#            'exclude_doses'].values[0]
+        exclude_doses = df_tr[df_tr.agent == drug][
+            'exclude_doses'].values[0]
+        if exclude_doses != '':
+            exclude_doses = [int(s) for s in exclude_doses.split(',')]
+        else:
+            exclude_doses = None
         if 'dose_interval' in df_tr.columns.tolist():
             step = df_tr[df_tr.agent == drug]['dose_interval'].values[0]
         else:
@@ -163,7 +177,8 @@ def construct_well_level_df(input_file, plate_dims=[16, 24],
         if len(max_dose) == 1:
             max_dose = max_dose[0]
             num_doses = num_doses[0]
-            dose_range = set_dosing(max_dose, num_doses, num_replicates, step=step)
+            dose_range = set_dosing(max_dose, num_doses, num_replicates, step=step,
+                                    exclude_doses=exclude_doses)
             # if exclude_doses == '':
             #     dose_range = dose_range[:num_doses]
             # else:
