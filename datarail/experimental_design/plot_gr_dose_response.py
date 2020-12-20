@@ -67,10 +67,11 @@ def plot_dr(data, df_grmetric=None, time_col='timepoint', gr_value='GRvalue',
     """
     df_grvalues = data.copy()
     df_grvalues[gr_value] = df_grvalues[gr_value].astype(float)
-    dfg1 = df_grvalues.groupby(['cell_line', 'agent', 'concentration', 'timepoint'],
-                                 as_index=True)[gr_value].mean().copy()
-    dfg2 = df_grvalues.groupby(['cell_line', 'agent', 'concentration', 'timepoint'],
-                                 as_index=True)[gr_value].std().copy()
+    grouping_cols = list(set(['cell_line', 'agent', 'concentration', 'timepoint', hue_col]))
+    dfg1 = df_grvalues.groupby(grouping_cols,
+                               as_index=True)[gr_value].mean().copy()
+    dfg2 = df_grvalues.groupby(grouping_cols,
+                               as_index=True)[gr_value].std().copy()
     df_grvalues = pd.concat([dfg1, dfg2], axis=1)
     df_grvalues.columns = [gr_value, 'sd']
     df_grvalues = df_grvalues.reset_index()
@@ -144,7 +145,12 @@ def plot_gr50(dfgr, ax, labels, colors, hue_col='cell_line', subplot_col='agent'
     ylim = ax.get_ylim()
     xlim = ax.get_xlim()
     dfgrs = dfgr[dfgr[subplot_col] == subplot_var].copy()
-    for hue_var, color in zip(labels, colors):
+    # Get labels assayed for subplot_var
+    labels_bool = [True if l in dfgrs[hue_col].unique() else False for l in labels]
+    labels_subset = labels[labels_bool]
+    colors = np.array(colors)
+    colors_subset = colors[labels_bool]
+    for hue_var, color in zip(labels_subset, colors_subset):
         gr50 = dfgrs[dfgrs[hue_col] == hue_var]['GR50'].values[0]
         ax.plot([gr50, gr50], [ylim[0], (ylim[0] + 0.2)], color)
         ax.set_ylim(ylim)
@@ -200,13 +206,13 @@ def plot_fraction_dead(df_fd, y_col='fraction_dead', figname=None, errbar=None):
     pdf_pages = PdfPages(figname)
     for tp in timepoints:
         dft = df_fd[df_fd.timepoint == tp]
-        g = plot_fd(dft, y_col, errbar)
+        g = plot_fd(dft, y_col, errbar=errbar)
         pdf_pages.savefig(g.fig)
     pdf_pages.close()
 
 
 
-def plot_fd(data, y_col='fraction_dead', errbar=None):
+def plot_fd(data, y_col='fraction_dead', hue_col='cell_line', errbar=None):
     """Plots fraction dead summary figure for each timepoint.
 
     Parameters
@@ -224,9 +230,10 @@ def plot_fd(data, y_col='fraction_dead', errbar=None):
     g : seaborn figure object
     """
     df_fd = data.copy()
-    df_fd1 = df_fd.groupby(['cell_line', 'agent', 'concentration', 'timepoint'],
+    grouping_cols = list(set(['cell_line', 'agent', 'concentration', 'timepoint', hue_col]))
+    df_fd1 = df_fd.groupby(grouping_cols,
                            as_index=True)[y_col].mean().copy()
-    df_fd2 = df_fd.groupby(['cell_line', 'agent', 'concentration', 'timepoint'],
+    df_fd2 = df_fd.groupby(grouping_cols,
                            as_index=True)[y_col].std().copy()
     df_fd = pd.concat([df_fd1, df_fd2], axis=1)
     df_fd.columns = [y_col, 'sd']
@@ -239,7 +246,7 @@ def plot_fd(data, y_col='fraction_dead', errbar=None):
     subplot_height = np.min((2, round(16 / num_rows)))
     hue_order = df_fd.cell_line.unique()[::-1]
 
-    g = sns.FacetGrid(df_fd, col='agent', hue='cell_line',
+    g = sns.FacetGrid(df_fd, col='agent', hue=hue_col,
                       # row='timepoint',
                       hue_order=hue_order, palette='husl',
                       col_wrap=col_wrap,
