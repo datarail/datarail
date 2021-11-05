@@ -122,20 +122,23 @@ def generate_GRinput(df_input, counts_column='cell_count',
     #else:
     #    counts_col = ['cell_count', 'cell_count__ctrl']
     dc2 = df[df.role == 'negative_control'].groupby(
-        ['cell_line', 'timepoint'])['cell_count'].mean()
-    df_counts['cell_count__ctrl'] = [dc2.loc[c, t] for c, t in
-                                     zip(df_counts['cell_line'],
+        ['barcode', 'cell_line', 'timepoint'])['cell_count'].mean()
+    df_counts['cell_count__ctrl'] = [dc2.loc[b, c, t] for b, c, t in
+                                     zip(df_counts['barcode'],
+                                         df_counts['cell_line'],
                                          df_counts['timepoint'])]
     if evaluate_dead:
         dcd = df[df.role == 'negative_control'].groupby(
-            ['cell_line', 'timepoint'])['dead_count'].mean()
-        df_counts['dead_count__ctrl'] = [dcd.loc[c, t] for c, t in
-                                         zip(df_counts['cell_line'],
+            ['barcode', 'cell_line', 'timepoint'])['dead_count'].mean()
+        df_counts['dead_count__ctrl'] = [dcd.loc[b, c, t] for b, c, t in
+                                         zip(df_counts['barcode'],
+                                             df_counts['cell_line'],
                                              df_counts['timepoint'])]
         dcf = df[df.role == 'negative_control'].groupby(
-            ['cell_line', 'timepoint'])['fraction_dead'].mean()
-        df_counts['fraction_dead__ctrl'] = [dcf.loc[c, t] for c, t in
-                                            zip(df_counts['cell_line'],
+            ['barcode', 'cell_line', 'timepoint'])['fraction_dead'].mean()
+        df_counts['fraction_dead__ctrl'] = [dcf.loc[b, c, t] for b, c, t in
+                                            zip(df_counts['barcode'],
+                                                df_counts['cell_line'],
                                                 df_counts['timepoint'])]
         df_counts['increase_fraction_dead'] = df_counts['fraction_dead'] -\
             df_counts['fraction_dead__ctrl']
